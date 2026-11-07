@@ -31,3 +31,17 @@ docs/      architecture decisions + roadmap
   N>2 is an agent concern, not an engine one).
 - **Domain vs API models:** engine uses dataclasses; Pydantic models will live at the API layer
   (1.2) and convert at the boundary.
+
+### 1.2 Match manager + HTTP API (2026-11-08)
+- **`MatchManager` (in-memory dict)** owns match lifecycle; the engine still owns the rules. A
+  `Match` wraps an immutable `GameState` that is swapped only after a successful `apply_move`.
+- **Lifecycle:** `waiting` (until every seat has joined) → `active` → `finished` (derived from
+  state, not stored separately, so it can't drift).
+- **`submit_move` is the single entry point for moves** (HTTP now, WS in 1.3, agents in 3.2),
+  guarded by a per-match `asyncio.Lock` to serialize concurrent submissions.
+- **No auth yet:** `player_id` in the body identifies the player. Fine for local dev; seat tokens
+  are a later concern.
+- **Errors:** uniform `{reason, message}` body. 404 not found, 409 for state conflicts
+  (`not_your_turn`, `game_over`, `not_started`, `already_joined`), 422 for bad input
+  (`invalid_config`, `invalid_pile`, `invalid_count`), 403 `unknown_player`.
+- **`create_app()` factory** with the manager on `app.state` → each test gets a fresh app.
