@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -37,9 +38,19 @@ class Match:
         return "active" if all_joined else "waiting"
 
 
+OnChange = Callable[["Match"], Awaitable[None]]
+
+
 class MatchManager:
-    def __init__(self) -> None:
+    def __init__(self, on_change: OnChange | None = None) -> None:
         self._matches: dict[str, Match] = {}
+        # Called while holding the match lock after every state change, so observers
+        # (e.g. WebSocket broadcast) see changes in order. Must not call back into the manager.
+        self._on_change = on_change
+
+    async def _changed(self, match: Match) -> None:
+        if self._on_change is not None:
+            await self._on_change(match)
 
     def create(self, config: GameConfig) -> Match:
         match = Match(id=uuid.uuid4().hex[:12], state=new_game(config))
@@ -60,6 +71,7 @@ class MatchManager:
             if player_id in match.joined:
                 raise MatchError("already_joined", f"{player_id} already joined")
             match.joined.add(player_id)
+            await self._changed(match)
         return match
 
     async def submit_move(self, match_id: str, player_id: str, pile: int, count: int) -> Match:
@@ -70,5 +82,5 @@ class MatchManager:
                 raise MatchError("not_started", "waiting for all players to join")
             # Engine raises IllegalMoveError (incl. game_over); state only changes on success.
             match.state = apply_move(match.state, player_id, pile, count)
+            await self._changed(match)
         return match
-

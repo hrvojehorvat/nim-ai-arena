@@ -45,3 +45,16 @@ docs/      architecture decisions + roadmap
   (`not_your_turn`, `game_over`, `not_started`, `already_joined`), 422 for bad input
   (`invalid_config`, `invalid_pile`, `invalid_count`), 403 `unknown_player`.
 - **`create_app()` factory** with the manager on `app.state` → each test gets a fresh app.
+
+### 1.3 WebSocket game loop (2026-11-08)
+- **`WS /ws/matches/{id}?player=<id>`**; connecting = join (or reconnect, seat is kept on
+  disconnect). No `player` param = spectator (read-only), useful for watching agent matches later.
+- **Protocol:** client sends `{"type":"move","pile","count"}`; server sends full `state` snapshots
+  (not diffs; small payloads, idempotent clients), `game_over` after the final state, and
+  `error {reason, message}` to the sender only. Rejections close with 4404 / 4403.
+- **Broadcast via `MatchManager(on_change=...)`**, invoked *inside* the per-match lock, so
+  broadcasts are strictly ordered and HTTP moves reach WS clients too. Manager stays I/O-free
+  (it only knows a callback); `ws.Hub` owns sockets.
+- **Tradeoff:** a slow socket delays the broadcast (and holds the match lock) because sends are
+  awaited sequentially. Fine at current scale; revisit with per-socket send queues if needed.
+- **Tests** use `with TestClient(app)` so all HTTP/WS calls share one event loop.

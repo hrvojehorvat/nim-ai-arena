@@ -8,7 +8,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 ## Phase 1 — Core game & turn-based loop (no DB, no AI)
 - ✅ 1.1 Pure Nim engine (config, state, move validation, winner) + tests
 - ✅ 1.2 In-memory MatchManager + HTTP API (create/get/move)
-- ⬜ 1.3 WebSocket game loop (broadcast state, turn enforcement)
+- ✅ 1.3 WebSocket game loop (broadcast state, turn enforcement)
 - ⬜ 1.4 Turn timeouts (auto-move / forfeit policy)
 - ⬜ 1.5 Text-based Vite/TS client (human vs human)
 
