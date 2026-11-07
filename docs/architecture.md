@@ -58,3 +58,14 @@ docs/      architecture decisions + roadmap
 - **Tradeoff:** a slow socket delays the broadcast (and holds the match lock) because sends are
   awaited sequentially. Fine at current scale; revisit with per-socket send queues if needed.
 - **Tests** use `with TestClient(app)` so all HTTP/WS calls share one event loop.
+
+### 1.3b Board limits + `max_take` variant (2026-11-08)
+- **Limits lowered to 10 piles × 30 stones** so the whole board is displayable and countable in
+  the UI (stones rendered in groups of 5; 10 per line on narrow screens).
+- **`GameConfig.max_take`** (optional, ≥1): max stones removable per move. `None` = standard Nim.
+  No upper bound: a value above a pile's size just allows taking the whole pile. Part of the
+  config, so it is stored with the match and replays honor it.
+- **Strategy impact:** this is a subtraction game; optimal play uses Grundy values
+  `pile % (max_take + 1)` XOR-ed together, which equals nim-sum when unlimited.
+- **Frontend direction:** 1.5 uses DOM elements (CSS-styled stone buttons) for the board; Canvas
+  remains the Phase 6 target for animation. Pending user confirmation vs. Canvas-first.

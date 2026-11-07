@@ -113,3 +113,27 @@ def test_illegal_moves_leave_state_unchanged(client, player, pile, count, status
     r = move(client, m["id"], player, pile, count)
     assert r.status_code == status and r.json()["reason"] == reason
     assert client.get(f"/matches/{m['id']}").json()["piles"] == [1, 2]
+
+
+def test_max_take_roundtrip_and_enforced(client) -> None:
+    r = client.post(
+        "/matches",
+        json={"piles": [10], "players": [{"id": "alice"}, {"id": "bob"}], "max_take": 3},
+    )
+    assert r.status_code == 201
+    m = join_all(client, r.json())
+    assert m["max_take"] == 3
+    r = move(client, m["id"], "alice", 0, 4)
+    assert r.status_code == 422 and r.json()["reason"] == "invalid_count"
+    assert move(client, m["id"], "alice", 0, 3).json()["piles"] == [7]
+
+
+def test_max_take_defaults_to_null(client) -> None:
+    assert create(client)["max_take"] is None
+
+
+def test_invalid_max_take_rejected(client) -> None:
+    r = client.post(
+        "/matches", json={"piles": [3], "players": [{"id": "a"}, {"id": "b"}], "max_take": 0}
+    )
+    assert r.status_code == 422 and r.json()["reason"] == "invalid_config"

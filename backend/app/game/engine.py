@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Literal
 
-MAX_PILES = 20
-MAX_STONES_PER_PILE = 100
+MAX_PILES = 10
+MAX_STONES_PER_PILE = 30
 MIN_PLAYERS = 2
 
 PlayerKind = Literal["human"]
@@ -37,6 +37,9 @@ class PlayerSpec:
 class GameConfig:
     piles: tuple[int, ...]
     players: tuple[PlayerSpec, ...]
+    # Max stones a player may remove per move. None = unlimited (standard Nim).
+    # Values larger than a pile simply allow taking the whole pile.
+    max_take: int | None = None
 
     def __post_init__(self) -> None:
         # Normalize lists to tuples so configs stay immutable and hashable.
@@ -61,6 +64,12 @@ class GameConfig:
         ids = [p.id for p in self.players]
         if len(set(ids)) != len(ids):
             raise InvalidConfigError("player ids must be unique")
+        if self.max_take is not None and (
+            not isinstance(self.max_take, int)
+            or isinstance(self.max_take, bool)
+            or self.max_take < 1
+        ):
+            raise InvalidConfigError("max_take must be a positive integer or unset")
 
 
 @dataclass(frozen=True)
@@ -103,9 +112,12 @@ def apply_move(state: GameState, player_id: str, pile: int, count: int) -> GameS
     if not 0 <= pile < len(state.piles):
         raise IllegalMoveError("invalid_pile", f"pile {pile} does not exist")
     available = state.piles[pile]
-    if not 1 <= count <= available:
+    max_take = state.config.max_take
+    limit = available if max_take is None else min(available, max_take)
+    if not 1 <= count <= limit:
+        rule = f" (max {max_take} per move)" if max_take is not None else ""
         raise IllegalMoveError(
-            "invalid_count", f"must remove between 1 and {available} stones from pile {pile}"
+            "invalid_count", f"must remove between 1 and {limit} stones from pile {pile}{rule}"
         )
 
     piles_after = tuple(s - count if i == pile else s for i, s in enumerate(state.piles))

@@ -134,3 +134,39 @@ def test_no_moves_after_game_over() -> None:
     with pytest.raises(IllegalMoveError) as exc:
         apply_move(state, "bob", pile=0, count=1)
     assert exc.value.reason == "game_over"
+
+
+# --- max_take variant ---
+
+
+def test_limits_are_10_piles_of_30() -> None:
+    assert make_config(piles=(MAX_STONES_PER_PILE,) * MAX_PILES).piles == (30,) * 10
+    assert (MAX_PILES, MAX_STONES_PER_PILE) == (10, 30)
+
+
+def test_max_take_defaults_to_unlimited() -> None:
+    state = new_game(make_config(piles=(30,)))
+    assert state.config.max_take is None
+    assert apply_move(state, "alice", pile=0, count=30).winner_id == "alice"
+
+
+@pytest.mark.parametrize("max_take", [0, -1, 1.5, True, "3"])
+def test_invalid_max_take(max_take) -> None:
+    with pytest.raises(InvalidConfigError):
+        GameConfig(piles=[3], players=[ALICE, BOB], max_take=max_take)
+
+
+def test_max_take_limits_count() -> None:
+    state = new_game(GameConfig(piles=[10], players=[ALICE, BOB], max_take=3))
+    assert apply_move(state, "alice", pile=0, count=3).piles == (7,)
+    with pytest.raises(IllegalMoveError) as exc:
+        apply_move(state, "alice", pile=0, count=4)
+    assert exc.value.reason == "invalid_count"
+    assert "max 3 per move" in str(exc.value)
+
+
+def test_max_take_larger_than_pile_allows_taking_all() -> None:
+    state = new_game(GameConfig(piles=[4], players=[ALICE, BOB], max_take=1000))
+    assert apply_move(state, "alice", pile=0, count=4).winner_id == "alice"
+    with pytest.raises(IllegalMoveError):
+        apply_move(state, "alice", pile=0, count=5)

@@ -16,11 +16,13 @@ class PlayerIn(BaseModel):
 class CreateMatchRequest(BaseModel):
     piles: list[StrictInt]
     players: list[PlayerIn]
+    max_take: StrictInt | None = None
 
     def to_config(self) -> GameConfig:
         return GameConfig(
             piles=self.piles,
             players=[PlayerSpec(id=p.id, name=p.name or p.id) for p in self.players],
+            max_take=self.max_take,
         )
 
 
@@ -51,6 +53,7 @@ class MoveOut(BaseModel):
 class MatchOut(BaseModel):
     id: str
     status: MatchStatus
+    max_take: int | None
     initial_piles: list[int]
     piles: list[int]
     players: list[PlayerOut]
@@ -64,6 +67,7 @@ class MatchOut(BaseModel):
         return cls(
             id=match.id,
             status=match.status,
+            max_take=state.config.max_take,
             initial_piles=list(state.config.piles),
             piles=list(state.piles),
             players=[
