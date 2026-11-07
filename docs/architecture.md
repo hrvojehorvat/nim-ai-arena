@@ -69,3 +69,20 @@ docs/      architecture decisions + roadmap
   `pile % (max_take + 1)` XOR-ed together, which equals nim-sum when unlimited.
 - **Frontend direction:** 1.5 uses DOM elements (CSS-styled stone buttons) for the board; Canvas
   remains the Phase 6 target for animation. Pending user confirmation vs. Canvas-first.
+
+### 1.4 Turn timeouts (2026-11-08)
+- **Per-match `turn_timeout` (seconds, optional, ≤3600)** lives on `Match`, not `GameConfig`:
+  it's a match/runtime setting, not a rule of Nim. Default `None` = no limit.
+- **Policy: auto-move only.** On expiry the server plays `engine.default_move` (1 stone from the
+  first non-empty pile) for the current player through the normal `apply_move` path and
+  broadcasts it. Games always terminate (stones strictly decrease).
+- **Forfeit deferred to Phase 4:** with N>2 players it needs elimination rules (turn skipping,
+  winner when one remains, history/replay representation). Not worth designing for 2 players only.
+- **Timer mechanics:** one `asyncio.Task` per active match, (re)started under the match lock after
+  join-to-active and after every move; cancelled on game end and on app shutdown (lifespan).
+  The task re-checks `len(moves)` under the lock so a move landing right at expiry can't trigger
+  a double move.
+- **Auto moves are tracked** in `Match.auto_moves` (move indices) and exposed as `moves[].auto`;
+  the engine's `Move` stays rule-only. Phase 2 must persist this flag.
+- **Clients get `turn_time_left`** (seconds, computed at serialization) rather than an absolute
+  deadline → no client/server clock-skew issues; client counts down from receipt.

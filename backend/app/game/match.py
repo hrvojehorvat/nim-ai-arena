@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
-from app.game.engine import GameConfig, GameState, apply_move, new_game
+from app.game.engine import GameConfig, GameState, apply_move, default_move, new_game
 
 MatchStatus = Literal["waiting", "active", "finished"]
 
@@ -27,8 +27,14 @@ class MatchError(Exception):
 class Match:
     id: str
     state: GameState
+    # Seconds a player has per turn; None = no limit. On expiry the server plays default_move.
+    turn_timeout: float | None = None
     joined: set[str] = field(default_factory=set)
+    # Indices into state.moves that the server played on a player's behalf (timeout).
+    auto_moves: set[int] = field(default_factory=set)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
+    turn_deadline: float | None = field(default=None, repr=False)  # loop.time() based
+    _timer: asyncio.Task | None = field(default=None, repr=False)
 
     @property
     def status(self) -> MatchStatus:
@@ -36,6 +42,11 @@ class Match:
             return "finished"
         all_joined = len(self.joined) == len(self.state.config.players)
         return "active" if all_joined else "waiting"
+
+    def turn_time_left(self) -> float | None:
+        if self.turn_deadline is None:
+            return None
+        return max(0.0, self.turn_deadline - asyncio.get_running_loop().time())
 
 
 OnChange = Callable[["Match"], Awaitable[None]]
@@ -52,8 +63,8 @@ class MatchManager:
         if self._on_change is not None:
             await self._on_change(match)
 
-    def create(self, config: GameConfig) -> Match:
-        match = Match(id=uuid.uuid4().hex[:12], state=new_game(config))
+    def create(self, config: GameConfig, turn_timeout: float | None = None) -> Match:
+        match = Match(id=uuid.uuid4().hex[:12], state=new_game(config), turn_timeout=turn_timeout)
         self._matches[match.id] = match
         return match
 
@@ -71,6 +82,7 @@ class MatchManager:
             if player_id in match.joined:
                 raise MatchError("already_joined", f"{player_id} already joined")
             match.joined.add(player_id)
+            self._restart_turn_timer(match)
             await self._changed(match)
         return match
 
@@ -82,5 +94,42 @@ class MatchManager:
                 raise MatchError("not_started", "waiting for all players to join")
             # Engine raises IllegalMoveError (incl. game_over); state only changes on success.
             match.state = apply_move(match.state, player_id, pile, count)
+            self._restart_turn_timer(match)
             await self._changed(match)
         return match
+
+    async def close(self) -> None:
+        """Cancel all running turn timers (app shutdown)."""
+        for match in self._matches.values():
+            self._cancel_timer(match)
+
+    # --- turn timer (call only while holding match.lock) ---
+
+    def _cancel_timer(self, match: Match) -> None:
+        timer = match._timer
+        if timer is not None and timer is not asyncio.current_task():
+            timer.cancel()
+        match._timer = None
+        match.turn_deadline = None
+
+    def _restart_turn_timer(self, match: Match) -> None:
+        self._cancel_timer(match)
+        if match.turn_timeout is None or match.status != "active":
+            return
+        loop = asyncio.get_running_loop()
+        match.turn_deadline = loop.time() + match.turn_timeout
+        turn_no = len(match.state.moves)
+        match._timer = loop.create_task(self._expire_turn(match, turn_no))
+
+    async def _expire_turn(self, match: Match, turn_no: int) -> None:
+        await asyncio.sleep(match.turn_timeout)
+        async with match.lock:
+            # Guard against a move that landed just as the timer fired.
+            if match.status != "active" or len(match.state.moves) != turn_no:
+                return
+            pile, count = default_move(match.state)
+            match.state = apply_move(match.state, match.state.current_player.id, pile, count)
+            match.auto_moves.add(turn_no)
+            match._timer = None
+            self._restart_turn_timer(match)
+            await self._changed(match)

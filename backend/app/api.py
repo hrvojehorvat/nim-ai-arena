@@ -46,7 +46,7 @@ async def create_match(body: CreateMatchRequest, manager: Manager):
         config = body.to_config()
     except InvalidConfigError as e:
         return error_response("invalid_config", str(e))
-    return MatchOut.from_match(manager.create(config))
+    return MatchOut.from_match(manager.create(config, turn_timeout=body.turn_timeout))
 
 
 @router.get("/matches/{match_id}", response_model=MatchOut)

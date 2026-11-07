@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app import ws
@@ -6,9 +9,17 @@ from app.game.match import MatchManager
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Nim AI Arena")
-    app.state.hub = ws.Hub()
-    app.state.matches = MatchManager(on_change=app.state.hub.broadcast)
+    hub = ws.Hub()
+    matches = MatchManager(on_change=hub.broadcast)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        yield
+        await matches.close()
+
+    app = FastAPI(title="Nim AI Arena", lifespan=lifespan)
+    app.state.hub = hub
+    app.state.matches = matches
     app.include_router(api_router)
     app.include_router(ws.router)
 

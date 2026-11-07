@@ -135,3 +135,11 @@ def apply_move(state: GameState, player_id: str, pile: int, count: int) -> GameS
         moves=(*state.moves, move),
         winner_id=winner_id,
     )
+
+
+def default_move(state: GameState) -> tuple[int, int]:
+    """Smallest legal move: 1 stone from the first non-empty pile (used on turn timeout)."""
+    for i, stones in enumerate(state.piles):
+        if stones > 0:
+            return i, 1
+    raise IllegalMoveError("game_over", "no stones left")

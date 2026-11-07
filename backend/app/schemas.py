@@ -17,6 +17,9 @@ class CreateMatchRequest(BaseModel):
     piles: list[StrictInt]
     players: list[PlayerIn]
     max_take: StrictInt | None = None
+    # Seconds per turn; None = no limit. On expiry the server plays 1 stone from the first
+    # non-empty pile for the current player.
+    turn_timeout: float | None = Field(default=None, gt=0, le=3600)
 
     def to_config(self) -> GameConfig:
         return GameConfig(
@@ -48,12 +51,15 @@ class MoveOut(BaseModel):
     pile: int
     count: int
     piles_after: list[int]
+    auto: bool
 
 
 class MatchOut(BaseModel):
     id: str
     status: MatchStatus
     max_take: int | None
+    turn_timeout: float | None
+    turn_time_left: float | None
     initial_piles: list[int]
     piles: list[int]
     players: list[PlayerOut]
@@ -68,6 +74,8 @@ class MatchOut(BaseModel):
             id=match.id,
             status=match.status,
             max_take=state.config.max_take,
+            turn_timeout=match.turn_timeout,
+            turn_time_left=match.turn_time_left(),
             initial_piles=list(state.config.piles),
             piles=list(state.piles),
             players=[
@@ -82,8 +90,9 @@ class MatchOut(BaseModel):
                     pile=m.pile,
                     count=m.count,
                     piles_after=list(m.piles_after),
+                    auto=i in match.auto_moves,
                 )
-                for m in state.moves
+                for i, m in enumerate(state.moves)
             ],
         )
 

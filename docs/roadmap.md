@@ -10,7 +10,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ✅ 1.2 In-memory MatchManager + HTTP API (create/get/move)
 - ✅ 1.3 WebSocket game loop (broadcast state, turn enforcement)
 - ✅ 1.3b Board limits 10 piles × 30 stones + `max_take` rule variant
-- ⬜ 1.4 Turn timeouts (auto-move / forfeit policy)
+- ✅ 1.4 Turn timeouts (auto-move policy; forfeit moved to 4.1)
 - ⬜ 1.5 Vite/TS client with DOM board (stones as buttons, groups of 5, hover-to-select capped
   at `max_take`, wraps at 10/line on narrow screens) — human vs human
 
@@ -27,7 +27,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ⬜ 3.3 UI seat selection (human/agent) + agent move display
 
 ## Phase 4 — Multi-agent arena
-- ⬜ 4.1 N-player matches
+- ⬜ 4.1 N-player matches + forfeit-on-timeout policy (elimination rules, recorded in history)
 - ⬜ 4.2 Headless agent-vs-agent runs + win-rate stats
 - ⬜ 4.3 Random baseline agent
 
