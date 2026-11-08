@@ -53,6 +53,8 @@ def build_graph(rng: random.Random):
 class RandomAgent:
     """Implements the `Agent` protocol. Pass a seed for repeatable play (tests, arena)."""
 
+    description = "Baseline: plays a random legal move."
+
     def __init__(self, seed: int | None = None) -> None:
         self._graph = build_graph(random.Random(seed))
 

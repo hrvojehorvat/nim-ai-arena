@@ -37,6 +37,11 @@ class CreateMatchRequest(BaseModel):
         )
 
 
+class AgentOut(BaseModel):
+    name: str
+    description: str
+
+
 class JoinRequest(BaseModel):
     player_id: str
 

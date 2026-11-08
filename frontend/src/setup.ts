@@ -1,6 +1,6 @@
-import { createMatch, matchHash } from "./api";
+import { createMatch, listAgents, matchHash } from "./api";
 import { h } from "./dom";
-import { MAX_PILES, MAX_STONES_PER_PILE, type Match } from "./types";
+import { MAX_PILES, MAX_STONES_PER_PILE, type AgentInfo, type Match } from "./types";
 
 function parsePiles(raw: string): number[] {
   const parts = raw.split(/[\s,]+/).filter(Boolean);
@@ -49,9 +49,6 @@ function randomPiles(): string {
   return Array.from({ length: count }, () => 1 + Math.floor(Math.random() * 15)).join(", ");
 }
 
-// Agent kinds the server knows (see app/main.py).
-const AGENT_KINDS = ["nim_optimal", "random"];
-
 export function renderSetup(root: HTMLElement): () => void {
   const pilesInput = h("input", { id: "piles", value: "3, 4, 5", autocomplete: "off" });
   const maxTakeInput = h("input", { id: "max-take", type: "number", min: 1, placeholder: "unlimited" });
@@ -62,17 +59,24 @@ export function renderSetup(root: HTMLElement): () => void {
   const errorBox = h("p", { class: "form-error", role: "alert" });
   const result = h("div", { class: "created" });
 
+  // The agent list comes from the server (GET /agents) and arrives after the first paint.
+  let agents: AgentInfo[] = [];
+  const fillOptions = (select: HTMLSelectElement) => {
+    select.replaceChildren(
+      h("option", { value: "human" }, "Human"),
+      ...agents.map((a) => h("option", { value: a.name, title: a.description }, `Agent: ${a.name}`)),
+    );
+    select.value = select.dataset.want ?? "human";
+  };
+
   type Seat = { kind: HTMLSelectElement; input: HTMLInputElement };
   const playerInputs: Seat[] = [];
   const addPlayer = (value: string, kind = "human") => {
     const input = h("input", { value, maxlength: 40, "aria-label": "Player id", autocomplete: "off" });
-    const select = h(
-      "select",
-      { "aria-label": "Seat type" },
-      h("option", { value: "human" }, "Human"),
-      ...AGENT_KINDS.map((k) => h("option", { value: k }, `Agent: ${k}`)),
-    );
-    select.value = kind;
+    const select = h("select", { "aria-label": "Seat type" });
+    select.dataset.want = kind; // what the user picked; survives the option list being rebuilt
+    select.addEventListener("change", () => (select.dataset.want = select.value));
+    fillOptions(select);
     playerInputs.push({ kind: select, input });
     redrawPlayers();
   };
@@ -85,6 +89,16 @@ export function renderSetup(root: HTMLElement): () => void {
   };
   addPlayer("you");
   addPlayer("bot", "nim_optimal");
+  let disposed = false;
+  listAgents()
+    .then((list) => {
+      if (disposed) return;
+      agents = list;
+      playerInputs.forEach(({ kind }) => fillOptions(kind));
+    })
+    .catch(() => {
+      errorBox.textContent = "Couldn't load the agent list; only human seats are available.";
+    });
 
   const randomBtn = h("button", { type: "button", class: "secondary" }, "Random");
   randomBtn.addEventListener("click", () => (pilesInput.value = randomPiles()));
@@ -144,7 +158,9 @@ export function renderSetup(root: HTMLElement): () => void {
   });
 
   root.replaceChildren(form, result);
-  return () => {};
+  return () => {
+    disposed = true;
+  };
 }
 
 function renderCreated(match: Match): HTMLElement {

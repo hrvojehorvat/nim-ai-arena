@@ -149,6 +149,8 @@ def build_graph():
 class NimOptimalAgent:
     """Implements the `Agent` protocol."""
 
+    description = "Perfect play: computes the nim-sum and always takes the winning move."
+
     def __init__(self) -> None:
         self._graph = build_graph()
 

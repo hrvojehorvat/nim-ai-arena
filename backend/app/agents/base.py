@@ -19,6 +19,9 @@ class Agent(Protocol):
     """Reads the full game state (board, rules, move history) and proposes a move.
 
     The proposal is NOT trusted: the server validates it exactly like a human move.
+    `description` is a one-line summary shown in the agent catalog (`GET /agents`).
     """
+
+    description: str
 
     async def choose_move(self, state: GameState, player_id: str) -> AgentMove: ...

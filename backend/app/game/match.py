@@ -155,6 +155,10 @@ class MatchManager:
         self._on_change = on_change
         self.store: MatchStore = store or NullMatchStore()
 
+    @property
+    def agents(self) -> dict[str, Agent]:
+        return self._agents
+
     async def _changed(self, match: Match) -> None:
         if self._on_change is not None:
             await self._on_change(match)

@@ -48,6 +48,11 @@ export interface CreateMatchRequest {
 }
 
 // GET /matches (history list)
+export interface AgentInfo {
+  name: string;
+  description: string;
+}
+
 export interface MatchSummary {
   id: string;
   status: MatchStatus;

@@ -37,7 +37,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 Decision: use LangChain chat models (`langchain-anthropic`, `langchain-openai`) behind one common
 interface, so graph nodes don't care which provider answers. Each model is a named agent that any
 seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `backend/.env`.
-- ⬜ 5.1 Agent catalog: `GET /agents` lists available agents; setup dropdown loads it (no LLM yet)
+- ✅ 5.1 Agent catalog: `GET /agents` lists available agents; setup dropdown loads it (no LLM yet)
 - ⬜ 5.2 First model call: `langchain-anthropic` + `ANTHROPIC_API_KEY`; notebook cell gets structured
   `{pile, count, reasoning}` from a raw prompt (no graph)
 - ⬜ 5.3 Prompt builder + reply parsing: pure, tested functions (state + history → prompt)

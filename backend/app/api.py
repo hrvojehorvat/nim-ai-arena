@@ -11,6 +11,7 @@ from app.db.history import PgMatchHistory
 from app.game.engine import IllegalMoveError, InvalidConfigError
 from app.game.match import MatchError, MatchManager, StorageError
 from app.schemas import (
+    AgentOut,
     CreateMatchRequest,
     JoinRequest,
     MatchOut,
@@ -79,6 +80,15 @@ async def create_match(body: CreateMatchRequest, manager: Manager):
     except MatchError as e:
         return error_response(e.reason, str(e))
     return MatchOut.from_match(match)
+
+
+@router.get("/agents", response_model=list[AgentOut])
+async def list_agents(manager: Manager) -> list[AgentOut]:
+    """Agents a seat can be assigned to (besides "human")."""
+    return [
+        AgentOut(name=name, description=agent.description)
+        for name, agent in sorted(manager.agents.items())
+    ]
 
 
 @router.get("/matches", response_model=list[MatchSummaryOut])

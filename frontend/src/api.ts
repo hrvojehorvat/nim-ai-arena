@@ -1,4 +1,4 @@
-import type { CreateMatchRequest, Match, MatchSummary, Replay } from "./types";
+import type { AgentInfo, CreateMatchRequest, Match, MatchSummary, Replay } from "./types";
 
 export class ApiError extends Error {}
 
@@ -23,6 +23,8 @@ export const createMatch = (body: CreateMatchRequest) =>
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+
+export const listAgents = () => request<AgentInfo[]>("/agents");
 
 export const listMatches = (limit: number, offset: number) =>
   request<MatchSummary[]>(`/matches?limit=${limit}&offset=${offset}`);

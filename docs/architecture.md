@@ -281,3 +281,13 @@ docs/      architecture decisions + roadmap
 - `agents/registry.py` (`build_agents(seed)`) is now the single list of agent kinds, used by the
   server and the arena. The frontend dropdown list is still hard-coded in `setup.ts`.
 - Not done on purpose: storing arena results in the DB or an HTTP endpoint (nothing needs them yet).
+
+## 5.1 Agent catalog
+
+- `GET /agents` returns `[{name, description}]` for every agent registered in the `MatchManager`
+  (sorted by name). Each agent has a one-line `description` (part of the `Agent` protocol).
+- The setup form no longer hard-codes agent names: it fetches the list after first paint, fills each
+  seat's dropdown (description as tooltip) and keeps the user's pick. If the fetch fails, only
+  Human is offered and an error is shown. The Vite dev proxy forwards `/agents`.
+- Later subphases register LLM agents only when their key/URL is configured, so the dropdown shows
+  exactly what can really play.
