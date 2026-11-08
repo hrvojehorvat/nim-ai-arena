@@ -1,0 +1,35 @@
+# Each [section] is one selectable LLM agent; the section name is what shows up in the seat dropdown
+# and in `python -m app.arena`. An agent only appears if it can run (see unavailable_reason in app/agents/).
+# Add a model here, restart the server: no code change needed.
+#
+#   provider        anthropic | openai_compat | ollama
+#   model           the provider's model id (Ollama: the name from `ollama list`)
+#   structured      optional true/false: does the server enforce JSON schemas? (defaults per provider)
+#   max_tokens      optional, default 1024
+#   base_url_env    openai_compat only: env var holding the endpoint URL (default MODAL_LLM_URL)
+#   api_key_env     openai_compat only: env var holding the API key (default MODAL_LLM_API_KEY)
+# Keys and URLs live in backend/.env, never in this file.
+
+# Disabled: the Anthropic account has no credit. Uncomment to offer it again (needs ANTHROPIC_API_KEY).
+# [claude_haiku]
+# provider = "anthropic"
+# model = "claude-haiku-5-5"
+
+[modal_qwen7b]
+provider = "openai_compat"
+model = "Qwen/Qwen2.5-7B-Instruct"   # served by deploy/modal_vllm.py
+
+[ollama_qwen2_1_5b]
+provider = "ollama"
+model = "qwen2:1.5b"
+
+[ollama_phi3_mini]
+provider = "ollama"
+model = "phi3:mini"
+
+# Example: OpenRouter's free models (needs OPENROUTER_URL=https://openrouter.ai/api/v1 and OPENROUTER_KEY)
+# [openrouter_llama]
+# provider = "openai_compat"
+# model = "meta-llama/llama-3.3-70b-instruct:free"
+# base_url_env = "OPENROUTER_URL"
+# api_key_env = "OPENROUTER_KEY"

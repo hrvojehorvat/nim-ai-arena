@@ -119,11 +119,10 @@ def test_unconfigured_llms_are_hidden(monkeypatch) -> None:
 
 
 def test_configured_llms_are_offered(monkeypatch) -> None:
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     monkeypatch.setenv("MODAL_LLM_URL", "http://127.0.0.1:9/v1")
     monkeypatch.setenv("MODAL_LLM_API_KEY", "k")
     monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:9/v1")
-    assert set(build_agents(llms=True)) == {"nim_optimal", "random", "claude_haiku", "modal_qwen7b"}
+    assert set(build_agents(llms=True)) == {"nim_optimal", "random", "modal_qwen7b"}
 
 
 def test_llms_are_off_by_default() -> None:

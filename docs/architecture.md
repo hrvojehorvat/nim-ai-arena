@@ -345,3 +345,11 @@ docs/      architecture decisions + roadmap
 - Observed live (Ollama, CPU): qwen2:1.5b answers in ~18 s with a legal move; phi3:mini (3.8B) in ~35 s with a
   legal (not optimal) move. smollm2:135m and tinyllama never produced usable JSON (always hit the fallback), so
   they were dropped from the catalog. Modal cold start can exceed 60 s.
+
+## 5.5 Model configuration
+- `backend/llm_agents.toml` replaces the hard-coded catalog: one `[section]` per selectable LLM agent
+  (provider `anthropic | openai_compat | ollama`, model, optional `structured`, `max_tokens`, and for
+  openai_compat `base_url_env` / `api_key_env`). Secrets and URLs stay in `.env`; the file is committed.
+- `app/agents/llm_catalog.py` parses it (stdlib `tomllib`) and validates every entry at startup, so a typo
+  stops the server with a message naming the entry instead of failing mid-game. `$NIM_LLM_CONFIG` points at
+  another file. Adding e.g. an OpenRouter free model = a new section + two env vars, no code change.

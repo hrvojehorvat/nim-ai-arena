@@ -43,7 +43,7 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
 - ✅ 5.3 Prompt builder + reply parsing: pure, tested functions (state + history → prompt)
 - ✅ 5.4 LLM agent graph: `build_prompt → llm_reason → validate_move`, retries feed the error back,
   then the safe fallback. Fake chat models in tests. Playable in the UI.
-- ⬜ 5.5 Model configuration: config file defines several named agents (Haiku, Sonnet, Opus) shown in
+- ✅ 5.5 Model configuration: config file defines several named agents (Haiku, Sonnet, Opus) shown in
   the dropdown and usable in the arena
 - ⬜ 5.6 OpenAI-compatible provider: `langchain-openai` `ChatOpenAI(base_url=...)` covers OpenAI,
   Modal (vLLM), Ollama, OpenRouter via config entries

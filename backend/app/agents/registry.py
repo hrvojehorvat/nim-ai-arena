@@ -6,7 +6,7 @@ import logging
 
 from app.agents.base import Agent
 from app.agents.llm_agent import LlmAgent
-from app.agents.llm_catalog import LLM_CATALOG
+from app.agents.llm_catalog import load_llm_catalog
 from app.agents.nim_optimal import NimOptimalAgent
 from app.agents.random_agent import RandomAgent
 
@@ -21,7 +21,7 @@ def build_agents(seed: int | None = None, llms: bool = False) -> dict[str, Agent
     """
     agents: dict[str, Agent] = {"nim_optimal": NimOptimalAgent(), "random": RandomAgent(seed)}
     if llms:
-        for name, make_provider in LLM_CATALOG.items():
+        for name, make_provider in load_llm_catalog().items():
             provider = make_provider()
             reason = provider.unavailable_reason()
             if reason:
