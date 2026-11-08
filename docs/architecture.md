@@ -86,3 +86,21 @@ docs/      architecture decisions + roadmap
   the engine's `Move` stays rule-only. Phase 2 must persist this flag.
 - **Clients get `turn_time_left`** (seconds, computed at serialization) rather than an absolute
   deadline → no client/server clock-skew issues; client counts down from receipt.
+
+### 1.5 Vite + TypeScript client (2026-11-08)
+- **Vanilla TS, no framework.** A 20-line `h()` helper builds DOM nodes; all user text goes
+  through `textContent` (no `innerHTML`). Each WS `state` message re-renders the view from
+  scratch: the server snapshot is the only state, so there's nothing to reconcile.
+- **Hash routing:** `#/` setup, `#/match/<id>/<player>` play a seat, `#/match/<id>` spectate.
+  One tab per seat for local human-vs-human testing.
+- **Vite dev proxy** forwards `/matches`, `/health`, `/ws` to `:8000` → single origin, no CORS.
+- **Board = DOM buttons** (CSS circles) in groups of 5, exactly 10 per line (30 stones = 3 lines),
+  on desktop and phone. Hover/focus a stone → highlights it and every stone to its right, capped
+  at `max_take` (`selectionCount` in `board.ts`); click sends that move. Illegal selections are
+  impossible in the UI, but the server still validates everything. Buttons give keyboard/focus
+  support for free; Canvas stays the Phase 6 target for animation.
+- **Countdown** uses `turn_time_left` + `performance.now()` at receipt (no clock skew).
+- **Reconnect:** non-fatal WS close → retry every 1.5s (seat is kept server-side); 4403/4404 are
+  shown as permanent errors.
+- **Types are hand-mirrored** from `schemas.py` in `src/types.ts` (small surface; revisit with
+  OpenAPI codegen if the API grows).

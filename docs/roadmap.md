@@ -11,7 +11,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ✅ 1.3 WebSocket game loop (broadcast state, turn enforcement)
 - ✅ 1.3b Board limits 10 piles × 30 stones + `max_take` rule variant
 - ✅ 1.4 Turn timeouts (auto-move policy; forfeit moved to 4.1)
-- ⬜ 1.5 Vite/TS client with DOM board (stones as buttons, groups of 5, hover-to-select capped
+- ✅ 1.5 Vite/TS client with DOM board (stones as buttons, groups of 5, hover-to-select capped
   at `max_take`, wraps at 10/line on narrow screens) — human vs human
 
 ## Phase 2 — Persistence (PostgreSQL)

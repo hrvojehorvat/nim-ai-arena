@@ -1,0 +1,103 @@
+:root {
+  --bg: #f6f5f1;
+  --card: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6b6b70;
+  --border: #e3e1da;
+  --accent: #2f6fdf;
+  --accent-soft: #e6eefc;
+  --stone: #4a4f57;
+  --stone-hi: #e2552d;
+  --danger: #c0392b;
+  --ok: #2e8b57;
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181b;
+    --card: #212327;
+    --text: #ececef;
+    --muted: #9a9ba3;
+    --border: #33363c;
+    --accent: #6b9cff;
+    --accent-soft: #24304a;
+    --stone: #b9bec7;
+    --stone-hi: #ff7a52;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); }
+header { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.brand { font-weight: 700; color: var(--text); text-decoration: none; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+a { color: var(--accent); }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+h2, h3 { margin: 0 0 12px; }
+.muted { color: var(--muted); }
+
+/* --- setup form --- */
+.setup { max-width: 560px; display: flex; flex-direction: column; gap: 8px; }
+label { font-size: 0.9rem; color: var(--muted); margin-top: 6px; }
+input { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); width: 100%; }
+.row { display: flex; gap: 8px; }
+.row.two > * { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid transparent; padding: 8px 14px; background: var(--accent); color: #fff; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.secondary { background: transparent; color: var(--accent); border-color: var(--border); white-space: nowrap; }
+button.link { background: none; border: none; padding: 0 4px; color: var(--accent); }
+.player-input { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.seat { font-size: 0.85rem; color: var(--muted); min-width: 52px; }
+.form-error { color: var(--danger); margin: 4px 0; min-height: 1em; }
+.links li { margin: 6px 0; }
+
+/* --- match view --- */
+.match-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .match-layout { grid-template-columns: 1fr; } }
+.match-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.badge.finished { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.banner { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--bg); margin-bottom: 12px; font-weight: 600; }
+.banner.my-turn { background: var(--accent-soft); color: var(--accent); }
+.timer { font-variant-numeric: tabular-nums; }
+.timer.urgent { color: var(--danger); }
+
+.board { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+.pile { display: grid; grid-template-columns: 64px minmax(0, 1fr) 32px 64px; align-items: center; gap: 8px; min-height: 32px; }
+.pile-label { font-size: 0.85rem; color: var(--muted); }
+.pile-count { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.pile-hint { font-size: 0.85rem; color: var(--stone-hi); }
+/* Exactly two groups of 5 per line: 30 stones = 3 lines of 10, easy to count. */
+.stones { --stone-size: 20px; display: flex; flex-wrap: wrap; gap: 6px 12px; max-width: calc(10 * var(--stone-size) + 8 * 4px + 12px + 1px); }
+.group { display: inline-flex; gap: 4px; }
+.empty { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+.stone {
+  width: var(--stone-size); height: var(--stone-size); padding: 0; border-radius: 50%;
+  background: var(--stone); border: none; transition: transform 80ms, background 80ms;
+}
+.stone:disabled { opacity: 1; cursor: default; }
+.can-move .stone { cursor: pointer; }
+.stone.selected { background: var(--stone-hi); transform: scale(1.12); }
+.stone:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 520px) {
+  .pile { grid-template-columns: 44px minmax(0, 1fr) 24px; gap: 6px; }
+  .pile-hint { grid-column: 2 / -1; min-height: 1em; }
+  .stones { --stone-size: 16px; }
+}
+
+.side .players { list-style: none; padding: 0; margin: 0; }
+.players li { display: flex; justify-content: space-between; padding: 4px 0; }
+.players li.current { font-weight: 600; }
+.log { max-height: 320px; overflow-y: auto; padding-left: 28px; margin: 0 0 8px; font-size: 0.9rem; }
+.log li { margin: 2px 0; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 8px;
+  opacity: 0; pointer-events: none; transition: opacity 150ms, transform 150ms; max-width: calc(100% - 32px);
+}
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
