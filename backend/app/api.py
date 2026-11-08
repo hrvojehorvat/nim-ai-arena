@@ -23,6 +23,7 @@ STATUS_BY_REASON = {
     "not_your_turn": 409,
     "invalid_pile": 422,
     "invalid_count": 422,
+    "storage_error": 503,
 }
 
 
@@ -46,7 +47,11 @@ async def create_match(body: CreateMatchRequest, manager: Manager):
         config = body.to_config()
     except InvalidConfigError as e:
         return error_response("invalid_config", str(e))
-    return MatchOut.from_match(manager.create(config, turn_timeout=body.turn_timeout))
+    try:
+        match = await manager.create(config, turn_timeout=body.turn_timeout)
+    except MatchError as e:
+        return error_response(e.reason, str(e))
+    return MatchOut.from_match(match)
 
 
 @router.get("/matches/{match_id}", response_model=MatchOut)

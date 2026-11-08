@@ -122,3 +122,32 @@ docs/      architecture decisions + roadmap
 - **Tests:** DB tests use a throwaway `nim_arena_test` database (dropped/recreated per test) and
   skip when Postgres is unreachable; a conftest fixture clears `DATABASE_URL` so a developer's
   shell can't leak into unrelated tests.
+
+### 2.2 Match history schema + write-through (2026-11-08)
+- **Three tables** (`migrations/0001_match_history.sql`):
+  - `matches`: `config` JSONB = the rules needed to replay (`piles`, `max_take`), plus
+    `turn_timeout`, `status`, `winner_id`, `created_at`, `finished_at`. `turn_timeout` is a column,
+    not part of `config`, because it isn't a rule of Nim.
+  - `match_players`: one row per seat (`seat` = turn order), so "games by player" queries (4.2
+    stats) don't need to unpick JSON.
+  - `moves`: `(match_id, turn_no)` key, `pile`, `count`, `piles_after int[]`, `auto` (timeout move).
+  - Replay = `config` + `match_players` + ordered `moves`; `piles_after` lets the UI show any step
+    without re-running the engine, and lets tests cross-check against it (2.3).
+- **Persist before apply.** `MatchManager._apply` validates with the engine, saves the move
+  (insert + match status/winner in one transaction), and only then swaps the in-memory state and
+  broadcasts. If saving fails the move is rejected (`storage_error`, HTTP 503) and nothing changes,
+  so memory never gets ahead of the DB. The same applies to creating a match and to the final join
+  that activates it. Tradeoff: a DB outage stops play instead of silently losing history.
+- **Timeout moves** go through the same `_apply`; if saving one fails it's logged and retried
+  after another timeout period, so the game doesn't stall without a timer.
+- **`MatchStore` protocol** in `game/match.py` (`NullMatchStore` for in-memory mode,
+  `PgMatchStore` in `db/matches.py`). The manager never imports asyncpg.
+  `MatchManager.create` became async because it now saves.
+- **Restart = abandoned.** Live matches exist only in memory, so on startup any `waiting`/`active`
+  rows are marked `abandoned`. Resuming in-progress matches after a restart is out of scope; the
+  abandoned status keeps history honest and is easy to filter.
+- **Joins are not persisted** (only the waiting→active status change): who has connected is live
+  session state, not history.
+- **Known gap:** match ids are 12 hex chars (48 bits). A collision would surface as a
+  `storage_error` on create; negligible at this scale.
+- **Tests:** DB fixtures moved to `conftest.py`; `FailingStore` tests need no database.

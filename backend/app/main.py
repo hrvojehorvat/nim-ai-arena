@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -6,8 +7,11 @@ from fastapi import FastAPI
 
 from app import ws
 from app.api import router as api_router
+from app.db.matches import PgMatchStore
 from app.db.pool import create_pool, database_url_from_env, run_migrations
 from app.game.match import MatchManager
+
+log = logging.getLogger(__name__)
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
@@ -22,6 +26,13 @@ def create_app(database_url: str | None = None) -> FastAPI:
         if url:
             pool = await create_pool(url)
             await run_migrations(pool)
+            store = PgMatchStore(pool)
+            abandoned = await store.abandon_unfinished()
+            if abandoned:
+                log.warning(
+                    "marked %d unfinished match(es) from a previous run as abandoned", abandoned
+                )
+            matches.store = store
         app.state.db = pool
         try:
             yield

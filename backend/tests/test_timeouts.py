@@ -26,7 +26,7 @@ class Recorder:
 
 
 async def start(manager: MatchManager, rec: Recorder, piles, timeout: float | None) -> Match:
-    match = manager.create(GameConfig(piles=piles, players=PLAYERS), turn_timeout=timeout)
+    match = await manager.create(GameConfig(piles=piles, players=PLAYERS), turn_timeout=timeout)
     await manager.join(match.id, "alice")
     await manager.join(match.id, "bob")
     assert [await rec.next_move_count(), await rec.next_move_count()] == [0, 0]
@@ -49,7 +49,7 @@ async def test_no_timeout_by_default() -> None:
 
 async def test_timer_not_started_while_waiting() -> None:
     manager = MatchManager()
-    match = manager.create(GameConfig(piles=[3], players=PLAYERS), turn_timeout=0.01)
+    match = await manager.create(GameConfig(piles=[3], players=PLAYERS), turn_timeout=0.01)
     await manager.join(match.id, "alice")
     assert match.turn_time_left() is None
     await asyncio.sleep(0.05)
