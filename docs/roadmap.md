@@ -30,7 +30,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 
 ## Phase 4 — Multi-agent arena
 - ➖ 4.1 N-player matches + forfeit-on-timeout: dropped for now (two players only). Parked idea.
-- ⬜ 4.2 Headless agent-vs-agent runs + win-rate stats
+- ✅ 4.2 Headless agent-vs-agent runs + win-rate stats (CLI + notebook cell; no DB/HTTP yet)
 - ✅ 4.3 Random baseline agent (done before 4.2 so the arena has a weak opponent)
 
 ## Phase 5 — LLM agent (Anthropic Claude)

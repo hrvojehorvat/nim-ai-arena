@@ -269,3 +269,15 @@ docs/      architecture decisions + roadmap
   random non-empty pile, then a random legal count (respects `max_take`). Optional seed.
 - Registered as `random` in `main.py` and the setup form's seat dropdown. Reasoning: "Random: took
   N from pile P."
+
+## 4.2 Headless arena
+
+- `app/arena.py` (`uv run python -m app.arena --a nim_optimal --b random --games 200 --piles 3,4,5
+  [--max-take N] [--last-stone-loses] [--seed S]`). Plays the engine and agents directly: no server,
+  DB or delay, ~200 games in a few seconds. Agents are validated by `apply_move`, so a cheating
+  agent raises instead of silently winning.
+- Seats alternate (A moves first in even games), and the table shows win rate overall and wins when
+  moving first, since the first mover decides most Nim games.
+- `agents/registry.py` (`build_agents(seed)`) is now the single list of agent kinds, used by the
+  server and the arena. The frontend dropdown list is still hard-coded in `setup.ts`.
+- Not done on purpose: storing arena results in the DB or an HTTP endpoint (nothing needs them yet).
