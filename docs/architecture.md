@@ -104,3 +104,21 @@ docs/      architecture decisions + roadmap
   shown as permanent errors.
 - **Types are hand-mirrored** from `schemas.py` in `src/types.ts` (small surface; revisit with
   OpenAPI codegen if the API grows).
+
+### 2.1 DB infrastructure (2026-11-08)
+- **Postgres 16 via `docker-compose.yml`** (user/password/db all `nim`/`nim`/`nim_arena`, local dev
+  only, named volume `pgdata`). Azure replaces it in Phase 7 by changing `DATABASE_URL` only.
+- **DB is optional:** with `DATABASE_URL` unset the app runs in memory exactly as before. Keeps
+  Phase 1 tests and quick local runs DB-free. Run with a DB via
+  `uv run uvicorn app.main:app --reload --env-file backend/.env` (copy `.env.example`).
+  Tradeoff: two modes to keep working; 2.2 must not assume a pool exists.
+- **`app/db/pool.py`:** `create_pool` (asyncpg, 1–5 connections) opened/closed in the FastAPI
+  lifespan, migrations run at startup. `create_app(database_url=...)` overrides the env var (tests).
+- **Migrations: plain `backend/migrations/NNNN_name.sql`**, applied in filename order, each in its
+  own transaction with its `schema_migrations` row (a failure leaves no partial change and is
+  retried next start). A Postgres advisory lock serializes concurrent starts. No down-migrations,
+  no checksums, no Alembic (per "no over-engineering"); revisit if the schema churns.
+- **`/health` now reports `db`:** `disabled` | `ok` | `down` (status `degraded`).
+- **Tests:** DB tests use a throwaway `nim_arena_test` database (dropped/recreated per test) and
+  skip when Postgres is unreachable; a conftest fixture clears `DATABASE_URL` so a developer's
+  shell can't leak into unrelated tests.

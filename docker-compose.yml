@@ -1,0 +1,21 @@
+# Local development database. Azure Postgres replaces this at deploy time (Phase 7).
+services:
+  postgres:
+    image: postgres:16
+    container_name: nim-arena-postgres
+    environment:
+      POSTGRES_USER: nim
+      POSTGRES_PASSWORD: nim
+      POSTGRES_DB: nim_arena
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nim -d nim_arena"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:

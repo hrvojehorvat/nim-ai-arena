@@ -15,7 +15,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
   at `max_take`, wraps at 10/line on narrow screens) — human vs human
 
 ## Phase 2 — Persistence (PostgreSQL)
-- ⬜ 2.1 docker-compose Postgres, asyncpg pool, SQL migration runner
+- ✅ 2.1 docker-compose Postgres, asyncpg pool, SQL migration runner
 - ⬜ 2.2 Schema (matches, match_players, moves) + write-through
 - ⬜ 2.3 History & replay API
 - ⬜ 2.4 Replay viewer in UI
