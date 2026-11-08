@@ -29,6 +29,12 @@ function optionalNumber(raw: string, label: string, integer: boolean): number | 
   return n;
 }
 
+function requiredNumber(raw: string, label: string): number {
+  const n = optionalNumber(raw, label, false);
+  if (n === null || n > 3600) throw new Error(`${label} must be 1–3600 seconds, or tick "No turn time limit".`);
+  return n;
+}
+
 function randomPiles(): string {
   const count = 3 + Math.floor(Math.random() * 3);
   return Array.from({ length: count }, () => 1 + Math.floor(Math.random() * 15)).join(", ");
@@ -37,7 +43,10 @@ function randomPiles(): string {
 export function renderSetup(root: HTMLElement): () => void {
   const pilesInput = h("input", { id: "piles", value: "3, 4, 5", autocomplete: "off" });
   const maxTakeInput = h("input", { id: "max-take", type: "number", min: 1, placeholder: "unlimited" });
-  const timeoutInput = h("input", { id: "timeout", type: "number", min: 1, max: 3600, value: 30, placeholder: "no limit" });
+  const timeoutInput = h("input", { id: "timeout", type: "number", min: 1, max: 3600, value: 30 });
+  const lastStoneLosesInput = h("input", { id: "last_stone_loses", type: "checkbox" });
+  const noLimitInput = h("input", { id: "no-limit", type: "checkbox" });
+  noLimitInput.addEventListener("change", () => (timeoutInput.disabled = noLimitInput.checked));
   const playersBox = h("div", { class: "players-inputs" });
   const errorBox = h("p", { class: "form-error", role: "alert" });
   const result = h("div", { class: "created" });
@@ -83,6 +92,8 @@ export function renderSetup(root: HTMLElement): () => void {
       h("div", {}, h("label", { for: "max-take" }, "Max stones per move"), maxTakeInput),
       h("div", {}, h("label", { for: "timeout" }, "Turn time limit (seconds)"), timeoutInput),
     ),
+    h("label", { class: "check" }, lastStoneLosesInput, "Last stone loses (the player who takes the last stone is the loser)"),
+    h("label", { class: "check" }, noLimitInput, "No turn time limit"),
     errorBox,
     submit,
   );
@@ -99,7 +110,8 @@ export function renderSetup(root: HTMLElement): () => void {
         piles: parsePiles(pilesInput.value),
         players: players.map((id) => ({ id })),
         max_take: optionalNumber(maxTakeInput.value, "Max stones per move", true),
-        turn_timeout: optionalNumber(timeoutInput.value, "Turn time limit", false),
+        last_stone_loses: lastStoneLosesInput.checked,
+        turn_timeout: noLimitInput.checked ? null : requiredNumber(timeoutInput.value, "Turn time limit"),
       });
       result.replaceChildren(renderCreated(match));
     } catch (err) {

@@ -21,6 +21,7 @@ export interface Match {
   id: string;
   status: MatchStatus;
   max_take: number | null;
+  last_stone_loses: boolean;
   turn_timeout: number | null;
   turn_time_left: number | null;
   initial_piles: number[];
@@ -40,6 +41,7 @@ export interface CreateMatchRequest {
   piles: number[];
   players: { id: string }[];
   max_take: number | null;
+  last_stone_loses: boolean;
   turn_timeout: number | null;
 }
 
@@ -52,6 +54,7 @@ export interface MatchSummary {
   finished_at: string | null;
   initial_piles: number[];
   max_take: number | null;
+  last_stone_loses: boolean;
   player_ids: string[];
   move_count: number;
 }
@@ -66,6 +69,7 @@ export interface Replay {
   turn_timeout: number | null;
   initial_piles: number[];
   max_take: number | null;
+  last_stone_loses: boolean;
   players: { id: string; name: string; kind: string; seat: number }[];
   moves: (Omit<Move, "piles_after"> & { turn_no: number; piles_after: number[] })[];
 }

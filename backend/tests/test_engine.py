@@ -170,3 +170,31 @@ def test_max_take_larger_than_pile_allows_taking_all() -> None:
     assert apply_move(state, "alice", pile=0, count=4).winner_id == "alice"
     with pytest.raises(IllegalMoveError):
         apply_move(state, "alice", pile=0, count=5)
+
+
+# --- last stone loses (taking the last stone loses) ---
+
+
+def test_last_stone_loses_last_stone_taker_loses() -> None:
+    state = new_game(GameConfig(piles=[1, 1], players=[ALICE, BOB], last_stone_loses=True))
+    state = apply_move(state, "alice", 0, 1)
+    assert not state.is_over
+    state = apply_move(state, "bob", 1, 1)  # bob takes the last stone -> bob loses
+    assert state.is_over and state.winner_id == "alice"
+
+
+def test_last_stone_loses_winner_is_next_player_with_three_players() -> None:
+    state = new_game(GameConfig(piles=[1], players=[ALICE, BOB, CAROL], last_stone_loses=True))
+    state = apply_move(state, "alice", 0, 1)
+    assert state.winner_id == "bob"
+    assert state.current_player.id == "bob"
+
+
+def test_standard_game_unchanged_by_default() -> None:
+    state = new_game(make_config(piles=(1,)))
+    assert apply_move(state, "alice", 0, 1).winner_id == "alice"
+
+
+def test_last_stone_loses_must_be_bool() -> None:
+    with pytest.raises(InvalidConfigError):
+        GameConfig(piles=[1], players=[ALICE, BOB], last_stone_loses="yes")  # type: ignore[arg-type]

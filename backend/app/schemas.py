@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, StrictInt
+from pydantic import BaseModel, Field, StrictBool, StrictInt
 
 from app.game.engine import GameConfig, PlayerSpec
 from app.game.match import Match, MatchStatus
@@ -19,6 +19,7 @@ class CreateMatchRequest(BaseModel):
     piles: list[StrictInt]
     players: list[PlayerIn]
     max_take: StrictInt | None = None
+    last_stone_loses: StrictBool = False
     # Seconds per turn; None = no limit. On expiry the server plays 1 stone from the first
     # non-empty pile for the current player.
     turn_timeout: float | None = Field(default=None, gt=0, le=3600)
@@ -28,6 +29,7 @@ class CreateMatchRequest(BaseModel):
             piles=self.piles,
             players=[PlayerSpec(id=p.id, name=p.name or p.id) for p in self.players],
             max_take=self.max_take,
+            last_stone_loses=self.last_stone_loses,
         )
 
 
@@ -60,6 +62,7 @@ class MatchOut(BaseModel):
     id: str
     status: MatchStatus
     max_take: int | None
+    last_stone_loses: bool
     turn_timeout: float | None
     turn_time_left: float | None
     initial_piles: list[int]
@@ -76,6 +79,7 @@ class MatchOut(BaseModel):
             id=match.id,
             status=match.status,
             max_take=state.config.max_take,
+            last_stone_loses=state.config.last_stone_loses,
             turn_timeout=match.turn_timeout,
             turn_time_left=match.turn_time_left(),
             initial_piles=list(state.config.piles),
@@ -115,6 +119,7 @@ class MatchSummaryOut(BaseModel):
     finished_at: datetime | None
     initial_piles: list[int]
     max_take: int | None
+    last_stone_loses: bool
     player_ids: list[str]  # in turn order
     move_count: int
 
@@ -146,5 +151,6 @@ class ReplayOut(BaseModel):
     turn_timeout: float | None
     initial_piles: list[int]
     max_take: int | None
+    last_stone_loses: bool
     players: list[ReplayPlayerOut]
     moves: list[ReplayMoveOut]

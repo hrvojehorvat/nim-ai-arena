@@ -96,3 +96,24 @@ def test_history_needs_a_database() -> None:
         for path in ("/matches", "/matches/x/replay"):
             r = client.get(path)
             assert r.status_code == 503 and r.json()["reason"] == "history_unavailable"
+
+
+async def test_last_stone_loses_is_saved_and_replays(test_db_url) -> None:
+    with TestClient(create_app(database_url=test_db_url)) as client:
+        mid = create(client, [2], last_stone_loses=True)
+        move(client, mid, "alice", 0, 1)
+        move(client, mid, "bob", 0, 1)  # bob takes the last stone and loses
+        body = client.get(f"/matches/{mid}/replay").json()
+        listed = client.get("/matches").json()[0]
+    assert body["last_stone_loses"] is True and body["winner_id"] == "alice"
+    assert listed["last_stone_loses"] is True
+    state = new_game(
+        GameConfig(
+            piles=body["initial_piles"],
+            players=[PlayerSpec(p["id"], p["name"]) for p in body["players"]],
+            last_stone_loses=body["last_stone_loses"],
+        )
+    )
+    for m in body["moves"]:
+        state = apply_move(state, m["player_id"], m["pile"], m["count"])
+    assert state.winner_id == body["winner_id"]

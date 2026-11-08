@@ -47,6 +47,7 @@ class PgMatchHistory:
                     "finished_at": r["finished_at"],
                     "initial_piles": config["piles"],
                     "max_take": config["max_take"],
+                    "last_stone_loses": config.get("last_stone_loses", False),
                     "player_ids": r["player_ids"] or [],
                     "move_count": r["move_count"],
                 }
@@ -83,6 +84,7 @@ class PgMatchHistory:
             "turn_timeout": m["turn_timeout"],
             "initial_piles": config["piles"],
             "max_take": config["max_take"],
+            "last_stone_loses": config.get("last_stone_loses", False),
             "players": [
                 {"id": p["player_id"], "name": p["name"], "kind": p["kind"], "seat": p["seat"]}
                 for p in players

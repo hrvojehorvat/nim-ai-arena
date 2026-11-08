@@ -137,3 +137,19 @@ def test_invalid_max_take_rejected(client) -> None:
         "/matches", json={"piles": [3], "players": [{"id": "a"}, {"id": "b"}], "max_take": 0}
     )
     assert r.status_code == 422 and r.json()["reason"] == "invalid_config"
+
+
+def test_last_stone_loses_roundtrip_and_winner(client) -> None:
+    r = client.post(
+        "/matches",
+        json={"piles": [1], "players": [{"id": "alice"}, {"id": "bob"}], "last_stone_loses": True},
+    )
+    assert r.status_code == 201
+    m = join_all(client, r.json())
+    assert m["last_stone_loses"] is True
+    done = move(client, m["id"], "alice", 0, 1).json()
+    assert done["status"] == "finished" and done["winner_id"] == "bob"
+
+
+def test_last_stone_loses_defaults_to_false(client) -> None:
+    assert create(client)["last_stone_loses"] is False

@@ -42,7 +42,7 @@ async def test_create_saves_config_and_seats(migrated_pool) -> None:
     assert row["winner_id"] is None and row["finished_at"] is None
     import json
 
-    assert json.loads(row["config"]) == {"piles": [3, 4], "max_take": 2}
+    assert json.loads(row["config"]) == {"piles": [3, 4], "max_take": 2, "last_stone_loses": False}
     seats = await migrated_pool.fetch(
         "SELECT seat, player_id, name, kind FROM match_players WHERE match_id = $1 ORDER BY seat",
         match.id,

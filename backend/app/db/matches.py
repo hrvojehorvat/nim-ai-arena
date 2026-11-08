@@ -26,7 +26,13 @@ class PgMatchStore:
                     VALUES ($1, $2::jsonb, $3, $4)
                     """,
                     match.id,
-                    json.dumps({"piles": list(config.piles), "max_take": config.max_take}),
+                    json.dumps(
+                        {
+                            "piles": list(config.piles),
+                            "max_take": config.max_take,
+                            "last_stone_loses": config.last_stone_loses,
+                        }
+                    ),
                     match.turn_timeout,
                     match.status,
                 )

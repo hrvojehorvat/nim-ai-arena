@@ -2,6 +2,14 @@ import { h } from "./dom";
 
 export const GROUP_SIZE = 5;
 
+/** One-line description of the rules, e.g. "last stone loses · max 3 per move". */
+export function describeRules(maxTake: number | null, lastStoneLoses: boolean): string {
+  return [
+    lastStoneLoses ? "last stone loses" : "last stone wins",
+    maxTake === null ? "take any number per move" : `max ${maxTake} per move`,
+  ].join(" · ");
+}
+
 /** How many stones a hover/click on stone `index` selects (stones are taken from the right end). */
 export function selectionCount(pileSize: number, index: number, maxTake: number | null): number {
   const wanted = pileSize - index;

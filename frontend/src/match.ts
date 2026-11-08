@@ -1,5 +1,5 @@
 import { matchHash, socketUrl } from "./api";
-import { renderBoard } from "./board";
+import { describeRules, renderBoard } from "./board";
 import { h } from "./dom";
 import type { Match, ServerMessage } from "./types";
 
@@ -58,7 +58,7 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
     }
     const m = match;
     const myTurn = m.status === "active" && m.current_player_id === playerId;
-    const rules = m.max_take === null ? "take any number per move" : `max ${m.max_take} per move`;
+    const rules = describeRules(m.max_take, m.last_stone_loses);
 
     let banner: string;
     if (m.status === "waiting") {

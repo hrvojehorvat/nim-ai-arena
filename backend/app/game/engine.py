@@ -40,6 +40,9 @@ class GameConfig:
     # Max stones a player may remove per move. None = unlimited (standard Nim).
     # Values larger than a pile simply allow taking the whole pile.
     max_take: int | None = None
+    # True: whoever takes the last stone LOSES, and the winner is the next player in turn order
+    # (the one who would have had to move). False (standard Nim): taking the last stone wins.
+    last_stone_loses: bool = False
 
     def __post_init__(self) -> None:
         # Normalize lists to tuples so configs stay immutable and hashable.
@@ -70,6 +73,8 @@ class GameConfig:
             or self.max_take < 1
         ):
             raise InvalidConfigError("max_take must be a positive integer or unset")
+        if not isinstance(self.last_stone_loses, bool):
+            raise InvalidConfigError("last_stone_loses must be true or false")
 
 
 @dataclass(frozen=True)
@@ -122,12 +127,16 @@ def apply_move(state: GameState, player_id: str, pile: int, count: int) -> GameS
 
     piles_after = tuple(s - count if i == pile else s for i, s in enumerate(state.piles))
     move = Move(player_id=player_id, pile=pile, count=count, piles_after=piles_after)
-    winner_id = player_id if sum(piles_after) == 0 else None
-    next_index = (
-        state.current_player_index
-        if winner_id
-        else (state.current_player_index + 1) % len(state.config.players)
-    )
+    players = state.config.players
+    next_index = (state.current_player_index + 1) % len(players)
+    winner_id = None
+    if sum(piles_after) == 0:
+        # The index stays on the winner once the game is over.
+        if state.config.last_stone_loses:
+            winner_id = players[next_index].id
+        else:
+            winner_id = player_id
+            next_index = state.current_player_index
     return replace(
         state,
         piles=piles_after,

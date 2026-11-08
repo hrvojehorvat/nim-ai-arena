@@ -180,3 +180,17 @@ docs/      architecture decisions + roadmap
 - Replay and live views are separate on purpose; live matches are not auto-linked to replay yet.
 - No automated frontend tests (consistent with 1.5); checked via typecheck/build and headless
   Chrome screenshots against a real DB.
+
+## Rule options: last stone loses and explicit "no time limit"
+
+- **`GameConfig.last_stone_loses: bool = False`.** In last stone loses the player who takes the last stone loses. The
+  engine still has a single `winner_id`, so the winner is the *next player in turn order* (with 2
+  players that's simply the opponent; with 3+ it's an arbitrary-but-deterministic choice, to be
+  revisited with elimination rules in 4.1). `current_player_index` stays on the winner, as before.
+- Stored in `matches.config` JSONB (no migration needed); rows saved before this change read as
+  `last_stone_loses=false` via `config.get("last_stone_loses", False)`. Exposed in match, list and replay responses.
+- **Strategy impact for 3.1:** last stone loses Nim differs from normal play only near the end (when every
+  pile is size ≤ 1 the parity flips). The agent must handle it; with `max_take` set, last stone loses
+  needs its own brute-force/Grundy-based table. Tests will cover both.
+- **No time limit** was already `turn_timeout = null` in the API; the setup form now has an explicit
+  "No turn time limit" checkbox (disables the seconds field) instead of relying on an empty box.

@@ -1,5 +1,5 @@
 import { getReplay, listMatches } from "./api";
-import { renderBoard } from "./board";
+import { describeRules, renderBoard } from "./board";
 import { h } from "./dom";
 import type { MatchSummary, Replay } from "./types";
 
@@ -41,7 +41,7 @@ export function renderHistory(root: HTMLElement): () => void {
                   {},
                   h("td", {}, when(r.created_at)),
                   h("td", {}, r.player_ids.join(" vs ")),
-                  h("td", {}, `[${r.initial_piles.join(", ")}]` + (r.max_take ? ` max ${r.max_take}` : "")),
+                  h("td", {}, `[${r.initial_piles.join(", ")}]` + (r.max_take ? ` max ${r.max_take}` : "") + (r.last_stone_loses ? " last stone loses" : "")),
                   h("td", {}, String(r.move_count)),
                   h("td", {}, r.winner_id ? `🏆 ${r.winner_id}` : h("span", { class: `badge ${r.status}` }, r.status)),
                   h("td", {}, h("a", { href: `#/replay/${encodeURIComponent(r.id)}` }, "Replay")),
@@ -90,7 +90,7 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
     const total = r.moves.length;
     const piles = step === 0 ? r.initial_piles : r.moves[step - 1].piles_after;
     const mv = step > 0 ? r.moves[step - 1] : null;
-    const rules = r.max_take === null ? "take any number per move" : `max ${r.max_take} per move`;
+    const rules = describeRules(r.max_take, r.last_stone_loses);
     let result = r.status === "finished" ? `🏆 ${name(r.winner_id!)} wins` : `Match ${r.status}`;
     if (step < total) result = "";
 
