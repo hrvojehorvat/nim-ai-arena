@@ -87,6 +87,7 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
         last
           ? h("p", { class: "muted" }, `Last move: ${name(last.player_id)} took ${last.count} from Pile ${last.pile + 1}${last.auto ? " (timed out — auto move)" : ""}`)
           : null,
+        last?.reasoning ? h("p", { class: "why" }, `💭 ${last.reasoning}`) : null,
       ),
       h(
         "div",
@@ -120,7 +121,12 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
                 "ol",
                 { class: "log", reversed: true },
                 ...[...m.moves].reverse().map((mv) =>
-                  h("li", {}, `${name(mv.player_id)} took ${mv.count} from Pile ${mv.pile + 1} → [${mv.piles_after.join(", ")}]${mv.auto ? " (auto)" : ""}`),
+                  h(
+                    "li",
+                    {},
+                    `${name(mv.player_id)} took ${mv.count} from Pile ${mv.pile + 1} → [${mv.piles_after.join(", ")}]${mv.auto ? " (auto)" : ""}`,
+                    mv.reasoning ? h("div", { class: "why" }, mv.reasoning) : null,
+                  ),
                 ),
               ),
           h("p", {}, h("a", { href: "#/" }, "← New match")),

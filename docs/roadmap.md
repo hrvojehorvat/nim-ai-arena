@@ -23,10 +23,10 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 ## Phase 3 — LangGraph AI → Milestone 1: human vs agent
 - ✅ 3.1 Agent interface + deterministic StateGraph: Grundy values `pile % (max_take+1)`
   XOR-ed (reduces to plain nim-sum when unlimited); brute-force tests for both modes
-- ⬜ 3.2 Agent runner in match loop (same validation path as humans). Every agent move carries a
+- ✅ 3.2 Agent runner in match loop (same validation path as humans). Every agent move carries a
   human-readable `reasoning` string, stored in a new nullable `moves.reasoning` column (migration
   0002), returned in replay and shown live in the UI. Humans have none.
-- ⬜ 3.3 UI seat selection (human/agent) + agent move display
+- ✅ 3.3 UI seat selection (human/agent per seat); one human vs agents opens that seat directly
 
 ## Phase 4 — Multi-agent arena
 - ⬜ 4.1 N-player matches + forfeit-on-timeout policy (elimination rules, recorded in history)

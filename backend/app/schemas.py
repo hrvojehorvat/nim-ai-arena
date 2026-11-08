@@ -13,6 +13,8 @@ from app.game.match import Match, MatchStatus
 class PlayerIn(BaseModel):
     id: str = Field(min_length=1, max_length=40)
     name: str | None = Field(default=None, max_length=60)
+    # "human", or an agent type such as "nim_optimal" (the server plays that seat itself).
+    kind: str = Field(default="human", min_length=1, max_length=40)
 
 
 class CreateMatchRequest(BaseModel):
@@ -27,7 +29,7 @@ class CreateMatchRequest(BaseModel):
     def to_config(self) -> GameConfig:
         return GameConfig(
             piles=self.piles,
-            players=[PlayerSpec(id=p.id, name=p.name or p.id) for p in self.players],
+            players=[PlayerSpec(id=p.id, name=p.name or p.id, kind=p.kind) for p in self.players],
             max_take=self.max_take,
             last_stone_loses=self.last_stone_loses,
         )
@@ -56,6 +58,7 @@ class MoveOut(BaseModel):
     count: int
     piles_after: list[int]
     auto: bool
+    reasoning: str | None = None
 
 
 class MatchOut(BaseModel):
@@ -97,6 +100,7 @@ class MatchOut(BaseModel):
                     count=m.count,
                     piles_after=list(m.piles_after),
                     auto=i in match.auto_moves,
+                    reasoning=match.reasons.get(i),
                 )
                 for i, m in enumerate(state.moves)
             ],
@@ -138,6 +142,7 @@ class ReplayMoveOut(BaseModel):
     count: int
     piles_after: list[int]
     auto: bool
+    reasoning: str | None = None
 
 
 class ReplayOut(BaseModel):

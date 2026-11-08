@@ -9,7 +9,8 @@ MAX_PILES = 10
 MAX_STONES_PER_PILE = 30
 MIN_PLAYERS = 2
 
-PlayerKind = Literal["human"]
+# "human", or the name of a registered agent type (e.g. "nim_optimal").
+PlayerKind = str
 
 IllegalMoveReason = Literal["game_over", "not_your_turn", "invalid_pile", "invalid_count"]
 

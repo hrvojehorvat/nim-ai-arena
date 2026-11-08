@@ -192,8 +192,8 @@ docs/      architecture decisions + roadmap
 - **Strategy impact for 3.1:** last stone loses Nim differs from normal play only near the end (when every
   pile is size ≤ 1 the parity flips). The agent must handle it; with `max_take` set, last stone loses
   needs its own brute-force/Grundy-based table. Tests will cover both.
-- **No time limit** was already `turn_timeout = null` in the API; the setup form now has an explicit
-  "No turn time limit" checkbox (disables the seconds field) instead of relying on an empty box.
+- **No time limit** was already `turn_timeout = null` in the API; the setup form's seconds field now
+  defaults to empty (placeholder "unlimited"); empty or 0 means no limit. The checkbox was dropped.
 
 ## 3.1 Deterministic LangGraph agent
 
@@ -219,3 +219,26 @@ docs/      architecture decisions + roadmap
   work, so 3.2 must run agents off the event loop (thread) so a slow search can't stall the server.
 - `pyproject.toml` ignores a Python 3.14 DeprecationWarning from langsmith (a langgraph dependency).
   Running pytest with `-W error` now fails at import because of it; use plain `uv run pytest`.
+
+## 3.2 Agents in the match loop
+
+- **Seats:** `PlayerSpec.kind` is `"human"` or a registered agent name (`nim_optimal`). Agent seats
+  are pre-joined at create time, so an all-agent match starts at once. Unknown kinds → 422
+  `unknown_agent`. `MatchManager(agents={...})` is the registry (wired in `main.py`).
+- **One move path:** human, agent and timeout moves all go through `_apply` (validate → persist →
+  apply → notify). Clients submitting for an agent seat get 403 `agent_seat`.
+- **Agent task:** `_begin_turn` restarts the turn timer and starts `_run_agent` when the current seat
+  is an agent. The agent thinks without the lock, then re-checks (still active, same turn) under the
+  lock before applying. The turn timeout still applies, so a stuck agent gets an auto-move.
+- **Failure handling:** crash or illegal proposal → server plays `default_move` with `auto=True` and
+  a reasoning text saying so. Storage failure → retry the same turn after `AGENT_RETRY_DELAY` (1 s).
+- **Reasoning:** migration `0002` adds `moves.reasoning`. Agent moves store the graph's text;
+  timeout moves store "Timed out, so the server played…". Humans give none. Exposed in match state
+  and replay, and shown under each move in the live log and replay viewer.
+
+## 3.3 Seat selection in the UI
+
+- Each setup seat has a Human / Agent dropdown (agent list hard-coded in `setup.ts` for now).
+- One human + agents → the UI jumps straight to that seat; all agents → spectate; 2+ humans → one
+  link per human seat. No auth yet: the seat is the URL, so a "player sees only their screen" model
+  needs per-seat tokens later (Nim has no hidden info, so this is access control, not secrecy).

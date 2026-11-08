@@ -29,6 +29,7 @@ filterwarnings = ["ignore:.*asyncio.iscoroutinefunction.*:DeprecationWarning"]
 
 [tool.ruff]
 line-length = 100
+extend-exclude = ["notebooks"]  # scratch space, not linted or reformatted
 target-version = "py311"
 
 [tool.ruff.lint]

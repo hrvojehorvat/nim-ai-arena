@@ -6,6 +6,7 @@ import asyncpg
 from fastapi import FastAPI, Request
 
 from app import ws
+from app.agents.nim_optimal import NimOptimalAgent
 from app.api import HistoryUnavailableError, error_response
 from app.api import router as api_router
 from app.db.history import PgMatchHistory
@@ -20,7 +21,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     """`database_url` defaults to $DATABASE_URL; with neither set the app runs without a DB."""
     url = database_url or database_url_from_env()
     hub = ws.Hub()
-    matches = MatchManager(on_change=hub.broadcast)
+    matches = MatchManager(on_change=hub.broadcast, agents={"nim_optimal": NimOptimalAgent()})
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

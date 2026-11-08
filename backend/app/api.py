@@ -33,6 +33,8 @@ STATUS_BY_REASON = {
     "invalid_count": 422,
     "storage_error": 503,
     "history_unavailable": 503,
+    "unknown_agent": 422,
+    "agent_seat": 403,
 }
 
 

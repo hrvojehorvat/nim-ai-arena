@@ -29,9 +29,13 @@ function optionalNumber(raw: string, label: string, integer: boolean): number | 
   return n;
 }
 
-function requiredNumber(raw: string, label: string): number {
-  const n = optionalNumber(raw, label, false);
-  if (n === null || n > 3600) throw new Error(`${label} must be 1–3600 seconds, or tick "No turn time limit".`);
+// Empty or 0 means "no time limit".
+function parseTimeLimit(raw: string): number | null {
+  if (raw.trim() === "" || Number(raw) === 0) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 3600) {
+    throw new Error("Turn time limit must be 1–3600 seconds (empty or 0 = unlimited).");
+  }
   return n;
 }
 
@@ -40,40 +44,49 @@ function randomPiles(): string {
   return Array.from({ length: count }, () => 1 + Math.floor(Math.random() * 15)).join(", ");
 }
 
+// Agent kinds the server knows (see app/main.py).
+const AGENT_KINDS = ["nim_optimal"];
+
 export function renderSetup(root: HTMLElement): () => void {
   const pilesInput = h("input", { id: "piles", value: "3, 4, 5", autocomplete: "off" });
   const maxTakeInput = h("input", { id: "max-take", type: "number", min: 1, placeholder: "unlimited" });
-  const timeoutInput = h("input", { id: "timeout", type: "number", min: 1, max: 3600, value: 30 });
+  const timeoutInput = h("input", { id: "timeout", type: "number", min: 0, max: 3600, placeholder: "unlimited" });
   const lastStoneLosesInput = h("input", { id: "last_stone_loses", type: "checkbox" });
-  const noLimitInput = h("input", { id: "no-limit", type: "checkbox" });
-  noLimitInput.addEventListener("change", () => (timeoutInput.disabled = noLimitInput.checked));
   const playersBox = h("div", { class: "players-inputs" });
   const errorBox = h("p", { class: "form-error", role: "alert" });
   const result = h("div", { class: "created" });
 
-  const playerInputs: HTMLInputElement[] = [];
-  const addPlayer = (value: string) => {
+  type Seat = { kind: HTMLSelectElement; input: HTMLInputElement };
+  const playerInputs: Seat[] = [];
+  const addPlayer = (value: string, kind = "human") => {
     const input = h("input", { value, maxlength: 40, "aria-label": "Player id", autocomplete: "off" });
-    playerInputs.push(input);
+    const select = h(
+      "select",
+      { "aria-label": "Seat type" },
+      h("option", { value: "human" }, "Human"),
+      ...AGENT_KINDS.map((k) => h("option", { value: k }, `Agent: ${k}`)),
+    );
+    select.value = kind;
+    playerInputs.push({ kind: select, input });
     redrawPlayers();
   };
   const redrawPlayers = () => {
     playersBox.replaceChildren(
-      ...playerInputs.map((input, i) => {
+      ...playerInputs.map(({ kind, input }, i) => {
         const remove = h("button", { type: "button", class: "link", disabled: playerInputs.length <= 2 }, "remove");
         remove.addEventListener("click", () => {
           playerInputs.splice(i, 1);
           redrawPlayers();
         });
-        return h("div", { class: "player-input" }, h("span", { class: "seat" }, `Seat ${i + 1}`), input, remove);
+        return h("div", { class: "player-input" }, h("span", { class: "seat" }, `Seat ${i + 1}`), kind, input, remove);
       }),
     );
     addBtn.disabled = playerInputs.length >= MAX_PLAYERS;
   };
   const addBtn = h("button", { type: "button", class: "secondary" }, "+ Add player");
   addBtn.addEventListener("click", () => addPlayer(`player${playerInputs.length + 1}`));
-  addPlayer("alice");
-  addPlayer("bob");
+  addPlayer("you");
+  addPlayer("bot", "nim_optimal");
 
   const randomBtn = h("button", { type: "button", class: "secondary" }, "Random");
   randomBtn.addEventListener("click", () => (pilesInput.value = randomPiles()));
@@ -90,10 +103,9 @@ export function renderSetup(root: HTMLElement): () => void {
     addBtn,
     h("div", { class: "row two" },
       h("div", {}, h("label", { for: "max-take" }, "Max stones per move"), maxTakeInput),
-      h("div", {}, h("label", { for: "timeout" }, "Turn time limit (seconds)"), timeoutInput),
+      h("div", {}, h("label", { for: "timeout" }, "Turn time limit (seconds, empty = unlimited)"), timeoutInput),
     ),
     h("label", { class: "check" }, lastStoneLosesInput, "Last stone loses (the player who takes the last stone is the loser)"),
-    h("label", { class: "check" }, noLimitInput, "No turn time limit"),
     errorBox,
     submit,
   );
@@ -102,17 +114,27 @@ export function renderSetup(root: HTMLElement): () => void {
     event.preventDefault();
     errorBox.textContent = "";
     try {
-      const players = playerInputs.map((i) => i.value.trim());
+      const players = playerInputs.map((s) => s.input.value.trim());
       if (players.some((p) => p === "")) throw new Error("Player ids cannot be empty.");
       if (new Set(players).size !== players.length) throw new Error("Player ids must be unique.");
       submit.disabled = true;
       const match = await createMatch({
         piles: parsePiles(pilesInput.value),
-        players: players.map((id) => ({ id })),
+        players: players.map((id, i) => ({ id, kind: playerInputs[i].kind.value })),
         max_take: optionalNumber(maxTakeInput.value, "Max stones per move", true),
         last_stone_loses: lastStoneLosesInput.checked,
-        turn_timeout: noLimitInput.checked ? null : requiredNumber(timeoutInput.value, "Turn time limit"),
+        turn_timeout: parseTimeLimit(timeoutInput.value),
       });
+      const humans = match.players.filter((p) => p.kind === "human");
+      if (humans.length === 1) {
+        // One human vs agents: go straight to that seat, no tab juggling.
+        location.hash = matchHash(match.id, humans[0].id);
+        return;
+      }
+      if (humans.length === 0) {
+        location.hash = matchHash(match.id, null);
+        return;
+      }
       result.replaceChildren(renderCreated(match));
     } catch (err) {
       errorBox.textContent = err instanceof Error ? err.message : String(err);
@@ -140,9 +162,9 @@ function renderCreated(match: Match): HTMLElement {
     "div",
     { class: "card" },
     h("h2", {}, `Match ${match.id} created`),
-    h("p", { class: "muted" }, "Open one tab per player (each link takes that seat). The game starts when every seat has joined."),
+    h("p", { class: "muted" }, "Send each human their own link (or open one per tab). The game starts when every human seat has joined."),
     h("ul", { class: "links" },
-      ...match.players.map((p) => link(p.id, `Play as ${p.id}`)),
+      ...match.players.filter((p) => p.kind === "human").map((p) => link(p.id, `Play as ${p.id}`)),
       link(null, "Watch as spectator"),
     ),
   );

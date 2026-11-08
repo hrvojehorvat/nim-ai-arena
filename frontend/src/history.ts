@@ -118,6 +118,7 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
           h("span", {}, result),
         ),
         renderBoard({ piles, maxTake: r.max_take, canMove: false, onMove: () => {} }),
+        mv?.reasoning ? h("p", { class: "why" }, `💭 ${mv.reasoning}`) : null,
         h(
           "div",
           { class: "row controls" },
@@ -141,7 +142,12 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
                 "ol",
                 { class: "log clickable" },
                 ...r.moves.map((m, i) => {
-                  const li = h("li", { class: i + 1 === step ? "current" : "" }, `${name(m.player_id)} took ${m.count} from Pile ${m.pile + 1} → [${m.piles_after.join(", ")}]${m.auto ? " (auto)" : ""}`);
+                  const li = h(
+                    "li",
+                    { class: i + 1 === step ? "current" : "" },
+                    `${name(m.player_id)} took ${m.count} from Pile ${m.pile + 1} → [${m.piles_after.join(", ")}]${m.auto ? " (auto)" : ""}`,
+                    m.reasoning ? h("div", { class: "why" }, m.reasoning) : null,
+                  );
                   li.addEventListener("click", () => go(i + 1));
                   return li;
                 }),

@@ -15,6 +15,7 @@ export interface Move {
   count: number;
   piles_after: number[];
   auto: boolean;
+  reasoning: string | null;
 }
 
 export interface Match {
@@ -39,7 +40,7 @@ export type ServerMessage =
 
 export interface CreateMatchRequest {
   piles: number[];
-  players: { id: string }[];
+  players: { id: string; kind?: string }[];
   max_take: number | null;
   last_stone_loses: boolean;
   turn_timeout: number | null;

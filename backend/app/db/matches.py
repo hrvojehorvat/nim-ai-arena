@@ -65,14 +65,16 @@ class PgMatchStore:
         auto: bool,
         status: MatchStatus,
         winner_id: str | None,
+        reasoning: str | None = None,
     ) -> None:
         """Insert the move and update the match row atomically."""
         try:
             async with self._pool.acquire() as conn, conn.transaction():
                 await conn.execute(
                     """
-                    INSERT INTO moves (match_id, turn_no, player_id, pile, count, piles_after, auto)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    INSERT INTO moves
+                        (match_id, turn_no, player_id, pile, count, piles_after, auto, reasoning)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                     """,
                     match_id,
                     turn_no,
@@ -81,6 +83,7 @@ class PgMatchStore:
                     move.count,
                     list(move.piles_after),
                     auto,
+                    reasoning,
                 )
                 await conn.execute(
                     """

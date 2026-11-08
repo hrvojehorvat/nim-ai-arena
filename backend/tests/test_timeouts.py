@@ -147,5 +147,6 @@ def test_timeout_exposed_and_auto_move_broadcast(client) -> None:
                 "count": 1,
                 "piles_after": [0, 2],
                 "auto": True,
+                "reasoning": "Timed out, so the server played 1 stone from pile 1.",
             }
             assert auto["current_player_id"] == "b"

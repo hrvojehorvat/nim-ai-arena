@@ -67,7 +67,8 @@ class PgMatchHistory:
                     match_id,
                 )
                 moves = await conn.fetch(
-                    "SELECT turn_no, player_id, pile, count, piles_after, auto FROM moves "
+                    "SELECT turn_no, player_id, pile, count, piles_after, auto, reasoning "
+                    "FROM moves "
                     "WHERE match_id = $1 ORDER BY turn_no",
                     match_id,
                 )
