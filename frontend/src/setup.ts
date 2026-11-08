@@ -50,7 +50,7 @@ function randomPiles(): string {
 }
 
 // Agent kinds the server knows (see app/main.py).
-const AGENT_KINDS = ["nim_optimal"];
+const AGENT_KINDS = ["nim_optimal", "random"];
 
 export function renderSetup(root: HTMLElement): () => void {
   const pilesInput = h("input", { id: "piles", value: "3, 4, 5", autocomplete: "off" });

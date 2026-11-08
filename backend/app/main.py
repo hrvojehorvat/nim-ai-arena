@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 
 from app import ws
 from app.agents.nim_optimal import NimOptimalAgent
+from app.agents.random_agent import RandomAgent
 from app.api import HistoryUnavailableError, error_response
 from app.api import router as api_router
 from app.db.history import PgMatchHistory
@@ -24,7 +25,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     hub = ws.Hub()
     matches = MatchManager(
         on_change=hub.broadcast,
-        agents={"nim_optimal": NimOptimalAgent()},
+        agents={"nim_optimal": NimOptimalAgent(), "random": RandomAgent()},
         agent_move_delay=float(os.environ.get("AGENT_MOVE_DELAY", "1.5")),
     )
 

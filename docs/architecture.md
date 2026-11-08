@@ -261,3 +261,11 @@ docs/      architecture decisions + roadmap
   between watching and fast runs without restarting. Tests force 0 via `conftest.py`. It also applies to the
   agent's reply in human-vs-agent games, which doubles as a natural "thinking" pause. The turn
   timeout clock keeps running during the pause.
+
+## 4.3 Random baseline agent
+
+- `agents/random_agent.py`: `pick_random_move → validate_move → (fallback_move)`, a LangGraph graph
+  that reuses the optimal agent's `validate_move`/`fallback_move` nodes and `AgentState`. Picks a
+  random non-empty pile, then a random legal count (respects `max_take`). Optional seed.
+- Registered as `random` in `main.py` and the setup form's seat dropdown. Reasoning: "Random: took
+  N from pile P."
