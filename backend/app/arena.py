@@ -10,10 +10,16 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sys
+import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from dotenv import load_dotenv
+
 from app.agents.base import Agent
+from app.agents.llm_agent import LlmAgent, LlmStats
 from app.agents.registry import build_agents
 from app.game.engine import GameConfig, PlayerSpec, apply_move, new_game
 
@@ -27,6 +33,7 @@ class ArenaResult:
     wins_moving_first: Counter = field(default_factory=Counter)  # "A" / "B"
     games_moving_first: Counter = field(default_factory=Counter)
     total_moves: int = 0
+    llm_stats: dict[str, LlmStats] = field(default_factory=dict)  # "A" / "B", LLM sides only
 
 
 async def play_game(config: GameConfig, agents: dict[str, Agent]) -> tuple[str, int]:
@@ -48,9 +55,12 @@ async def run_arena(
     max_take: int | None = None,
     last_stone_loses: bool = False,
     seed: int | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> ArenaResult:
-    # Separate instances per side so "random vs random" doesn't share one RNG.
-    registry_a, registry_b = build_agents(seed), build_agents(None if seed is None else seed + 1)
+    # Separate instances per side so "random vs random" doesn't share one RNG (or LLM stats).
+    llms = not {kind_a, kind_b} <= set(build_agents())
+    registry_a = build_agents(seed, llms=llms)
+    registry_b = build_agents(None if seed is None else seed + 1, llms=llms)
     side_agent = {"A": registry_a[kind_a], "B": registry_b[kind_b]}
     result = ArenaResult(a=kind_a, b=kind_b)
     for i in range(games):
@@ -63,11 +73,16 @@ async def run_arena(
         )
         winner, moves = await play_game(config, side_agent)
         result.games += 1
+        if progress:
+            progress(f"game {i + 1}/{games}: {winner} won in {moves} moves (first: {order[0]})")
         result.total_moves += moves
         result.wins[winner] += 1
         result.games_moving_first[order[0]] += 1
         if winner == order[0]:
             result.wins_moving_first[winner] += 1
+    for side, agent in side_agent.items():
+        if isinstance(agent, LlmAgent):
+            result.llm_stats[side] = agent.stats
     return result
 
 
@@ -84,11 +99,27 @@ def format_result(r: ArenaResult) -> str:
         lines.append(
             f"{side + ': ' + kind:20}{r.wins[side]:>6}{pct(r.wins[side], r.games):>10}{first:>12}"
         )
+    for side, kind in (("A", r.a), ("B", r.b)):
+        st = r.llm_stats.get(side)
+        if st and st.moves:
+            lines.append("")
+            lines.append(f"{side}: {kind} (LLM) over {st.moves} moves")
+            lines.append(
+                f"  needed a retry: {pct(st.retried_moves, st.moves).strip()}"
+                f"   fell back to a safe move: {pct(st.fallbacks, st.moves).strip()}"
+                f"   avg {st.attempts / st.moves:.2f} calls/move"
+            )
+            lines.append(
+                f"  avg {st.seconds / st.moves:.1f}s/move"
+                f"   tokens: {st.tokens_in} in / {st.tokens_out} out"
+                + ("" if st.tokens_in or st.tokens_out else " (not reported by this server)")
+            )
     return "\n".join(lines)
 
 
 def main() -> None:
-    kinds = sorted(build_agents())
+    load_dotenv(".env")  # keys/URLs for LLM agents; run from backend/
+    kinds = sorted(build_agents(llms=True))  # only LLMs that can run right now
     p = argparse.ArgumentParser(description="Play agents against each other and print win rates.")
     p.add_argument("--a", choices=kinds, default="nim_optimal")
     p.add_argument("--b", choices=kinds, default="random")
@@ -99,9 +130,21 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=None, help="makes random agents repeatable")
     args = p.parse_args()
     piles = [int(x) for x in args.piles.split(",")]
+    start = time.monotonic()
+
+    def progress(line: str) -> None:  # stderr, so the final table can still be piped
+        print(f"[{time.monotonic() - start:5.0f}s] {line}", file=sys.stderr, flush=True)
+
     result = asyncio.run(
         run_arena(
-            args.a, args.b, args.games, piles, args.max_take, args.last_stone_loses, args.seed
+            args.a,
+            args.b,
+            args.games,
+            piles,
+            args.max_take,
+            args.last_stone_loses,
+            args.seed,
+            progress,
         )
     )
     print(format_result(result))

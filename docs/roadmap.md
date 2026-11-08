@@ -45,9 +45,9 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
   then the safe fallback. Fake chat models in tests. Playable in the UI.
 - ✅ 5.5 Model configuration: config file defines several named agents (Haiku, Sonnet, Opus) shown in
   the dropdown and usable in the arena
-- ⬜ 5.6 OpenAI-compatible provider: `langchain-openai` `ChatOpenAI(base_url=...)` covers OpenAI,
+- ✅ 5.6 OpenAI-compatible provider (done within 5.2/5.5: Modal + Ollama use it, OpenRouter = a config entry): `langchain-openai` `ChatOpenAI(base_url=...)` covers OpenAI,
   Modal (vLLM), Ollama, OpenRouter via config entries
-- ⬜ 5.7 LLM arena runs: illegal-move/retry rates, latency, token use next to win rates
+- ✅ 5.7 LLM arena runs: illegal-move/retry rates, latency, token use next to win rates
 - ⬜ 5.8 Hybrid tool agent: LLM calls a `nim_sum` tool via a LangGraph tool node
 - ⬜ 5.9 Richer traces: `moves.meta` JSON (model, tokens, latency, retries, tool calls) shown in replay
 

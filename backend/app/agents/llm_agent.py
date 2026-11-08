@@ -14,6 +14,8 @@ after that a safe legal move is played so a weak model can never stall or break 
 
 from __future__ import annotations
 
+import time
+from dataclasses import dataclass
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -39,6 +41,22 @@ class LlmState(AgentState, total=False):
     messages: list[tuple[str, str]]  # (role, text) conversation with the model
     attempts: int
     error: str | None  # why the last answer was rejected
+    tokens_in: int  # summed over all attempts of this move
+    tokens_out: int
+    fell_back: bool
+
+
+@dataclass
+class LlmStats:
+    """What an agent instance has cost and how reliable it was, summed over its moves."""
+
+    moves: int = 0
+    retried_moves: int = 0  # needed more than one attempt but ended with the model's own move
+    fallbacks: int = 0  # gave up: the safe move was played
+    attempts: int = 0
+    seconds: float = 0.0
+    tokens_in: int = 0
+    tokens_out: int = 0
 
 
 def _text_of(content: Any) -> str:
@@ -50,6 +68,11 @@ def _text_of(content: Any) -> str:
         for b in content
         if isinstance(b, (str, dict))
     )
+
+
+def _usage(message: Any) -> tuple[int, int]:
+    usage = getattr(message, "usage_metadata", None) or {}
+    return usage.get("input_tokens", 0), usage.get("output_tokens", 0)
 
 
 def make_nodes(model: BaseChatModel, structured: bool):
@@ -66,23 +89,36 @@ def make_nodes(model: BaseChatModel, structured: bool):
             ],
             "attempts": 0,
             "error": None,
+            "tokens_in": 0,
+            "tokens_out": 0,
+            "fell_back": False,
         }
 
     async def llm_reason(s: LlmState) -> LlmState:
         attempts = s["attempts"] + 1
         messages = list(s["messages"])
+        tokens = {"tokens_in": s["tokens_in"], "tokens_out": s["tokens_out"]}
+
+        def count(raw: Any) -> None:
+            t_in, t_out = _usage(raw)
+            tokens["tokens_in"] += t_in
+            tokens["tokens_out"] += t_out
+
         try:
             if structured_model is not None:
                 out = await structured_model.ainvoke(messages)
+                count(out["raw"])
                 raw_text = _text_of(out["raw"].content)
                 decision = out["parsed"]
                 if decision is None:  # server ignored the schema: try to rescue the raw text
                     decision = parse_decision(raw_text)
             else:
-                raw_text = _text_of((await model.ainvoke(messages)).content)
+                reply = await model.ainvoke(messages)
+                count(reply)
+                raw_text = _text_of(reply.content)
                 decision = parse_decision(raw_text)
         except ReplyParseError as e:
-            return {"attempts": attempts, "error": str(e), "messages": messages}
+            return {"attempts": attempts, "error": str(e), "messages": messages, **tokens}
         messages.append(("assistant", raw_text))
         move = to_agent_move(decision)
         return {
@@ -92,6 +128,7 @@ def make_nodes(model: BaseChatModel, structured: bool):
             "pile": move.pile,
             "count": move.count,
             "reasoning": move.reasoning,
+            **tokens,
         }
 
     def validate_move(s: LlmState) -> LlmState:
@@ -109,6 +146,7 @@ def make_nodes(model: BaseChatModel, structured: bool):
     def fallback_move(s: LlmState) -> LlmState:
         pile, count = default_move(s["state"])
         return {
+            "fell_back": True,
             "pile": pile,
             "count": count,
             "reasoning": (
@@ -154,7 +192,19 @@ class LlmAgent:
             f"LLM {provider.model} ({mode}). Bad answers are retried, then a safe move is played."
         )
         self._graph = build_graph(model or provider.make(), provider.structured)
+        self.stats = LlmStats()
 
     async def choose_move(self, state: GameState, player_id: str) -> AgentMove:
+        start = time.perf_counter()
         out = await self._graph.ainvoke({"state": state, "player_id": player_id})
+        st = self.stats
+        st.moves += 1
+        st.attempts += out["attempts"]
+        st.seconds += time.perf_counter() - start
+        st.tokens_in += out["tokens_in"]
+        st.tokens_out += out["tokens_out"]
+        if out["fell_back"]:
+            st.fallbacks += 1
+        elif out["attempts"] > 1:
+            st.retried_moves += 1
         return AgentMove(pile=out["pile"], count=out["count"], reasoning=out["reasoning"])

@@ -24,7 +24,8 @@ class FakeModel:
 
     async def ainvoke(self, messages):
         self.calls.append(list(messages))
-        return AIMessage(content=self.replies.pop(0))
+        usage = {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+        return AIMessage(content=self.replies.pop(0), usage_metadata=usage)
 
     def with_structured_output(self, schema, include_raw=False):
         parent = self
@@ -101,6 +102,31 @@ async def test_structured_mode_uses_the_parsed_decision() -> None:
 async def test_structured_mode_rescues_a_reply_the_server_did_not_enforce() -> None:
     a, _ = agent([f"Sure! {GOOD}"], structured=True)  # structured parse fails, text parse works
     assert (await a.choose_move(state(), "a")).count == 4
+
+
+async def test_stats_count_retries_fallbacks_and_tokens() -> None:
+    a, _ = agent([GOOD])  # clean move: 1 call
+    await a.choose_move(state(), "a")
+    a2, _ = agent(["nope", GOOD])  # retried: 2 calls
+    await a2.choose_move(state(), "a")
+    a3, _ = agent(["nope"] * (MAX_RETRIES + 1))  # gave up
+    await a3.choose_move(state(), "a")
+
+    assert (a.stats.moves, a.stats.retried_moves, a.stats.fallbacks, a.stats.attempts) == (
+        1,
+        0,
+        0,
+        1,
+    )
+    assert (a.stats.tokens_in, a.stats.tokens_out) == (10, 5)
+    assert (a2.stats.retried_moves, a2.stats.fallbacks, a2.stats.attempts) == (1, 0, 2)
+    assert (a2.stats.tokens_in, a2.stats.tokens_out) == (20, 10)
+    assert (a3.stats.retried_moves, a3.stats.fallbacks, a3.stats.attempts) == (
+        0,
+        1,
+        MAX_RETRIES + 1,
+    )
+    assert a.stats.seconds > 0
 
 
 def test_description_names_the_model_and_mode() -> None:

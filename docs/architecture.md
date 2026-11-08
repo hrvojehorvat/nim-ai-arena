@@ -353,3 +353,14 @@ docs/      architecture decisions + roadmap
 - `app/agents/llm_catalog.py` parses it (stdlib `tomllib`) and validates every entry at startup, so a typo
   stops the server with a message naming the entry instead of failing mid-game. `$NIM_LLM_CONFIG` points at
   another file. Adding e.g. an OpenRouter free model = a new section + two env vars, no code change.
+
+## 5.7 LLM arena runs
+- `LlmAgent.stats` (`LlmStats`) accumulates per instance: moves, moves that needed a retry, fallbacks (safe move
+  played), model calls, seconds, tokens in/out (from `usage_metadata`, summed over retries; 0 when a server
+  doesn't report usage). The graph carries `tokens_in/out` and `fell_back` in its state.
+- The arena adds LLM agents when either side isn't a built-in (`build_agents(llms=True)`), loads `backend/.env`,
+  and prints per-side reliability (retry %, fallback %, calls/move), latency and tokens under the win table.
+  The arena uses separate agent instances per side, so stats never mix. Run it from `backend/`:
+  `uv run python -m app.arena --a ollama_qwen2_1_5b --b nim_optimal --games 2 --piles 2,3`.
+- Live example: qwen2:1.5b vs nim_optimal (2,3): lost 0-2, 75% of its moves were safe fallbacks, ~16 s/move on CPU.
+- Not done: no run is stored in the DB; stats exist only in the CLI output (5.9 stores per-move metadata).

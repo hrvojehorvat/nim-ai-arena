@@ -58,7 +58,12 @@ def test_default_config_builds_every_provider_without_network(monkeypatch) -> No
     monkeypatch.setenv("MODAL_LLM_URL", "http://localhost:9/v1")
     monkeypatch.setenv("MODAL_LLM_API_KEY", "k")
     catalog = load_llm_catalog()
-    assert {"modal_qwen7b", "ollama_qwen2_1_5b", "ollama_phi3_mini"} <= set(catalog)
+    assert {
+        "modal_qwen7b",
+        "ollama_qwen2_1_5b",
+        "ollama_phi3_mini",
+        "ollama_deepseek_coder_1_3b",
+    } <= set(catalog)
     for make in catalog.values():
         assert make().make() is not None
     assert get_provider("ollama_phi3_mini").model == "phi3:mini"

@@ -34,3 +34,9 @@ def test_format_mentions_both_sides() -> None:
 
     text = format_result(asyncio.run(run_arena("nim_optimal", "random", 4, [3, 4, 5], seed=0)))
     assert "A: nim_optimal" in text and "B: random" in text
+
+
+async def test_progress_is_reported_per_game() -> None:
+    lines: list[str] = []
+    await run_arena("nim_optimal", "random", games=3, piles=[2, 3], seed=1, progress=lines.append)
+    assert len(lines) == 3 and lines[0].startswith("game 1/3:")
