@@ -194,3 +194,28 @@ docs/      architecture decisions + roadmap
   needs its own brute-force/Grundy-based table. Tests will cover both.
 - **No time limit** was already `turn_timeout = null` in the API; the setup form now has an explicit
   "No turn time limit" checkbox (disables the seconds field) instead of relying on an empty box.
+
+## 3.1 Deterministic LangGraph agent
+
+- **Layout:** `agents/base.py` (the `Agent` protocol + `AgentMove(pile, count, reasoning)`),
+  `agents/strategy.py` (pure maths, no LangGraph), `agents/nim_optimal.py` (the `StateGraph`).
+  LLM agents (Phase 5) implement the same `choose_move(state, player_id)` protocol.
+- **Graph:** `evaluate_state → compute_strategy → select_move → validate_move → END`, with
+  `validate_move → fallback_move → END` when the move is illegal. `validate_move` dry-runs the
+  engine's `apply_move`, so a maths bug can't produce an illegal move. No retry loop: the agent is
+  deterministic, so retrying would repeat the same answer.
+- **Strategy:**
+  - standard rules: XOR of pile values; value = `pile % (max_take+1)` (just `pile` if unlimited).
+  - last stone loses, unlimited: normal Nim, except near the end (all piles ≤1, or one big pile)
+    where the parity of single stones decides. Brute force caught the naive version taking the whole
+    of a lone pile.
+  - last stone loses + `max_take`: exact memoised search capped at 50k positions
+    (`SEARCH_BUDGET`); beyond that, falls back to normal-play maths and says so in the reasoning.
+  - losing position: take 1 from the biggest pile to prolong the game.
+- **Tests (`test_agent.py`):** an independent brute-force solver covers every board of ≤3 piles of
+  0–5 stones for max_take ∈ {none,1,2,3} × both rule sets: the evaluation matches the solver and the
+  agent always leaves a losing position when a winning move exists.
+- **Known limitations:** not optimal with 3+ players (noted in the reasoning text); the search is CPU
+  work, so 3.2 must run agents off the event loop (thread) so a slow search can't stall the server.
+- `pyproject.toml` ignores a Python 3.14 DeprecationWarning from langsmith (a langgraph dependency).
+  Running pytest with `-W error` now fails at import because of it; use plain `uv run pytest`.

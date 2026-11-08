@@ -6,12 +6,14 @@ requires-python = ">=3.11"
 dependencies = [
     "asyncpg>=0.32.0",
     "fastapi>=0.162.2",
+    "langgraph>=1.2.20",
     "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
     "httpx2>=2.16.0",
+    "ipykernel>=7.4.0",
     "pytest>=9.2.0",
     "ruff>=0.17.4",
 ]
@@ -22,6 +24,8 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# Third-party (langsmith, pulled in by langgraph) trips a Python 3.14 deprecation on import.
+filterwarnings = ["ignore:.*asyncio.iscoroutinefunction.*:DeprecationWarning"]
 
 [tool.ruff]
 line-length = 100

@@ -21,7 +21,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ✅ 2.4 Replay viewer in UI
 
 ## Phase 3 — LangGraph AI → Milestone 1: human vs agent
-- ⬜ 3.1 Agent interface + deterministic StateGraph: Grundy values `pile % (max_take+1)`
+- ✅ 3.1 Agent interface + deterministic StateGraph: Grundy values `pile % (max_take+1)`
   XOR-ed (reduces to plain nim-sum when unlimited); brute-force tests for both modes
 - ⬜ 3.2 Agent runner in match loop (same validation path as humans). Every agent move carries a
   human-readable `reasoning` string, stored in a new nullable `moves.reasoning` column (migration
