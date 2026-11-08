@@ -364,3 +364,30 @@ docs/      architecture decisions + roadmap
   `uv run python -m app.arena --a ollama_qwen2_1_5b --b nim_optimal --games 2 --piles 2,3`.
 - Live example: qwen2:1.5b vs nim_optimal (2,3): lost 0-2, 75% of its moves were safe fallbacks, ~16 s/move on CPU.
 - Not done: no run is stored in the DB; stats exist only in the CLI output (5.9 stores per-move metadata).
+
+## 5.8 Tool agent (nim_sum), Groq, and the Ollama workaround
+- `app/agents/nim_tool.py`: the `nim_sum(piles)` tool, a pure wrapper over `strategy.py` returning nim-sum,
+  winning/losing/unknown and a 1-based `best_move`. The match rules (max_take, last-stone-loses) are injected by
+  the graph, never supplied by the model; bad piles raise `ValueError` and go back to the model as the tool result.
+- `app/agents/llm_tool_agent.py`: a second graph (`ToolLlmAgent`, subclass of `LlmAgent`, same stats plus
+  `tool_calls`), so plain and tool agents of the same model can be compared. Native mode:
+  `build_prompt -> llm_reason <-> run_tools -> validate_move -> retry | fallback`, capped at `MAX_TOOL_ROUNDS = 2`
+  (after that the model is called without tools and must answer). The final answer is plain text parsed by
+  `parse_decision`: tool calling and enforced JSON schemas don't combine reliably across servers. We run tools in
+  our own node rather than the prebuilt `ToolNode` because the tool needs match state the model must not supply.
+- Selected per config entry with `tools = "native" | "precompute"`; `make_llm_agent(provider)` picks the class.
+- **Groq** (`groq_llm.py`): OpenAI-compatible provider, free tier, `GROQ_API_KEY`, structured output off.
+  Model names change (Groq retired its Llama 3.x): `openai/gpt-oss-120b` and `qwen/qwen3.8-27b`
+  verified with native tool calls and the plain graph. Hidden from the dropdown until the key is set.
+- Modal: `deploy/modal_vllm.py` now passes `--enable-auto-tool-choice --tool-call-parser hermes`; **redeploy**
+  (`modal deploy backend/deploy/modal_vllm.py`) before using `modal_qwen7b_tools`.
+- Security fix on the way: `OpenAICompatProvider` used to fall back to `MODAL_LLM_*` env vars when an entry's own
+  vars were unset, which could send the Modal key to another server. Each entry now names its own env vars
+  (`url_env`/`key_env`) and never falls back.
+- **WORKAROUND, not real tool use:** Ollama 0.1.48 has no tool calling, so `tools = "precompute"` makes the graph
+  run the tool itself and paste the result into the prompt. It lets the small local models be compared with and
+  without help, but results say nothing about tool-use ability. Marked in the toml, the agent description, the
+  module docstring and the roadmap (5.10 removes it). `tools = "native"` on an Ollama entry is rejected at startup.
+- Live: qwen2:1.5b + precompute vs nim_optimal (2,3): still lost 0-2 with 50% fallbacks: a 1.5B model can't reliably
+  copy the answer even when it is handed over.
+

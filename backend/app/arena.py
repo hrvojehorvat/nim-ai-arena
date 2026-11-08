@@ -108,6 +108,7 @@ def format_result(r: ArenaResult) -> str:
                 f"  needed a retry: {pct(st.retried_moves, st.moves).strip()}"
                 f"   fell back to a safe move: {pct(st.fallbacks, st.moves).strip()}"
                 f"   avg {st.attempts / st.moves:.2f} calls/move"
+                + (f"   nim_sum tool: {st.tool_calls / st.moves:.2f}/move" if st.tool_calls else "")
             )
             lines.append(
                 f"  avg {st.seconds / st.moves:.1f}s/move"

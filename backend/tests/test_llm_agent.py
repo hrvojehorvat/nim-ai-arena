@@ -148,7 +148,9 @@ def test_configured_llms_are_offered(monkeypatch) -> None:
     monkeypatch.setenv("MODAL_LLM_URL", "http://127.0.0.1:9/v1")
     monkeypatch.setenv("MODAL_LLM_API_KEY", "k")
     monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:9/v1")
-    assert set(build_agents(llms=True)) == {"nim_optimal", "random", "modal_qwen7b"}
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    offered = set(build_agents(llms=True))
+    assert offered == {"nim_optimal", "random", "modal_qwen7b", "modal_qwen7b_tools"}
 
 
 def test_llms_are_off_by_default() -> None:

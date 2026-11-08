@@ -29,11 +29,18 @@ class LlmProvider:
     STRUCTURED_OUTPUT: bool = False
 
     def __init__(
-        self, model: str | None = None, max_tokens: int = 1024, structured: bool | None = None
+        self,
+        model: str | None = None,
+        max_tokens: int = 1024,
+        structured: bool | None = None,
+        tools: str | None = None,
     ) -> None:
         self.model = model or self.DEFAULT_MODEL
         self.max_tokens = max_tokens
         self.structured = self.STRUCTURED_OUTPUT if structured is None else structured
+        # None = plain LLM agent. "native" = the model calls the nim_sum tool itself.
+        # "precompute" = WORKAROUND for servers without tool calling (see llm_tool_agent.py).
+        self.tools = tools
 
     def unavailable_reason(self) -> str | None:
         """None if this provider can be used right now, else why not (missing key, server down...).

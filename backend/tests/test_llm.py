@@ -57,6 +57,7 @@ def test_default_config_builds_every_provider_without_network(monkeypatch) -> No
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     monkeypatch.setenv("MODAL_LLM_URL", "http://localhost:9/v1")
     monkeypatch.setenv("MODAL_LLM_API_KEY", "k")
+    monkeypatch.setenv("GROQ_API_KEY", "k")
     catalog = load_llm_catalog()
     assert {
         "modal_qwen7b",

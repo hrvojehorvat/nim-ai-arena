@@ -25,19 +25,29 @@ class OpenAICompatProvider(LlmProvider):
         base_url: str | None = None,
         api_key: str | None = None,
         structured: bool | None = None,
+        tools: str | None = None,
+        url_env: str = "MODAL_LLM_URL",
+        key_env: str = "MODAL_LLM_API_KEY",
     ) -> None:
-        super().__init__(model, max_tokens, structured)
-        self.base_url = base_url or os.environ.get("MODAL_LLM_URL")
-        self.api_key = api_key or os.environ.get("MODAL_LLM_API_KEY")
+        super().__init__(model, max_tokens, structured, tools)
+        # Each entry names its own env vars, so a missing key can never fall back to another
+        # provider's key (that would send it to the wrong server).
+        self.url_env, self.key_env = url_env, key_env
+        self.base_url = base_url or os.environ.get(url_env)
+        self.api_key = api_key or os.environ.get(key_env)
+
+    def _missing(self) -> str:
+        names = [
+            n for n, v in ((self.url_env, self.base_url), (self.key_env, self.api_key)) if not v
+        ]
+        return " / ".join(names)
 
     def unavailable_reason(self) -> str | None:
-        if not self.base_url or not self.api_key:
-            return "MODAL_LLM_URL / MODAL_LLM_API_KEY are not set"
-        return None
+        return f"{self._missing()} not set" if self._missing() else None
 
     def _build(self) -> BaseChatModel:
         if not self.base_url or not self.api_key:
-            raise RuntimeError("set MODAL_LLM_URL and MODAL_LLM_API_KEY (or pass base_url/api_key)")
+            raise RuntimeError(f"set {self._missing()} (or pass base_url/api_key)")
         return ChatOpenAI(
             model=self.model,
             base_url=self.base_url,

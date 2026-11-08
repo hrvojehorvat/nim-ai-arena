@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 
 from app.agents.base import Agent
-from app.agents.llm_agent import LlmAgent
 from app.agents.llm_catalog import load_llm_catalog
+from app.agents.llm_tool_agent import make_llm_agent
 from app.agents.nim_optimal import NimOptimalAgent
 from app.agents.random_agent import RandomAgent
 
@@ -27,5 +27,5 @@ def build_agents(seed: int | None = None, llms: bool = False) -> dict[str, Agent
             if reason:
                 log.info("LLM agent %s not offered: %s", name, reason)
                 continue
-            agents[name] = LlmAgent(provider)
+            agents[name] = make_llm_agent(provider)
     return agents

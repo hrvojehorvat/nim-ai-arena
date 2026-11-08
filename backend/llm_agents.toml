@@ -2,10 +2,12 @@
 # and in `python -m app.arena`. An agent only appears if it can run (see unavailable_reason in app/agents/).
 # Add a model here, restart the server: no code change needed.
 #
-#   provider        anthropic | openai_compat | ollama
+#   provider        anthropic | openai_compat | ollama | groq
 #   model           the provider's model id (Ollama: the name from `ollama list`)
 #   structured      optional true/false: does the server enforce JSON schemas? (defaults per provider)
 #   max_tokens      optional, default 1024
+#   tools           optional: "native" = the model calls the nim_sum tool itself;
+#                   "precompute" = WORKAROUND, the graph pastes the analysis into the prompt
 #   base_url_env    openai_compat only: env var holding the endpoint URL (default MODAL_LLM_URL)
 #   api_key_env     openai_compat only: env var holding the API key (default MODAL_LLM_API_KEY)
 # Keys and URLs live in backend/.env, never in this file.
@@ -19,6 +21,32 @@
 provider = "openai_compat"
 model = "Qwen/Qwen2.5-7B-Instruct"   # served by deploy/modal_vllm.py
 
+[modal_qwen7b_tools]
+provider = "openai_compat"
+model = "Qwen/Qwen2.5-7B-Instruct"
+tools = "native"                     # needs the redeployed modal_vllm.py (tool-call flags)
+
+# Groq: free tier, very fast hosted models. Needs GROQ_API_KEY in backend/.env (console.groq.com).
+# Groq retires models now and then (the Llama 3.x ones are gone): list what your key can use with
+# GET https://api.groq.com/openai/v1/models and edit the names here.
+[groq_gpt_oss_120b]
+provider = "groq"
+model = "openai/gpt-oss-120b"
+
+[groq_gpt_oss_120b_tools]
+provider = "groq"
+model = "openai/gpt-oss-120b"
+tools = "native"
+
+[groq_qwen3_27b]
+provider = "groq"
+model = "qwen/qwen3.8-27b"
+
+[groq_qwen3_27b_tools]
+provider = "groq"
+model = "qwen/qwen3.8-27b"
+tools = "native"
+
 [ollama_qwen2_1_5b]
 provider = "ollama"
 model = "qwen2:1.5b"
@@ -30,6 +58,22 @@ model = "phi3:mini"
 [ollama_deepseek_coder_1_3b]
 provider = "ollama"
 model = "deepseek-coder:1.3b"
+
+# ==================================================================================================
+# !! WORKAROUND !!  "precompute" is NOT real tool use. Our Ollama (0.1.48) has no tool calling, so
+# the graph computes the nim_sum analysis itself and pastes it into the prompt; the model only has to
+# copy the answer. Do not read these results as tool-use ability. Roadmap 5.10: upgrade Ollama,
+# switch these to tools = "native" and delete the precompute node.
+# ==================================================================================================
+[ollama_qwen2_1_5b_precompute]
+provider = "ollama"
+model = "qwen2:1.5b"
+tools = "precompute"
+
+[ollama_phi3_mini_precompute]
+provider = "ollama"
+model = "phi3:mini"
+tools = "precompute"
 
 # Example: OpenRouter's free models (needs OPENROUTER_URL=https://openrouter.ai/api/v1 and OPENROUTER_KEY)
 # [openrouter_llama]

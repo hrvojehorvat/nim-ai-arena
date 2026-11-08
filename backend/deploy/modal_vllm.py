@@ -75,6 +75,9 @@ def serve() -> None:
             os.environ["NIM_LLM_API_KEY"],  # requests need this as the bearer token
             "--max-model-len",
             "4096",  # Nim prompts are small; saves GPU memory
+            "--enable-auto-tool-choice",  # native tool calling (agents with tools = "native")
+            "--tool-call-parser",
+            "hermes",  # Qwen2.5 uses the Hermes tool format
             "--enforce-eager",  # faster start, slightly slower tokens: fine here
         ]
     )

@@ -57,6 +57,7 @@ class LlmStats:
     seconds: float = 0.0
     tokens_in: int = 0
     tokens_out: int = 0
+    tool_calls: int = 0  # nim_sum tool uses (tool agents only)
 
 
 def _text_of(content: Any) -> str:
@@ -187,12 +188,18 @@ class LlmAgent:
     """Implements the `Agent` protocol on top of any chat model."""
 
     def __init__(self, provider: LlmProvider, model: BaseChatModel | None = None) -> None:
+        self.description = self._describe(provider)
+        self._graph = self._make_graph(provider, model or provider.make())
+        self.stats = LlmStats()
+
+    def _describe(self, provider: LlmProvider) -> str:
         mode = "structured output" if provider.structured else "text + parsing"
-        self.description = (
+        return (
             f"LLM {provider.model} ({mode}). Bad answers are retried, then a safe move is played."
         )
-        self._graph = build_graph(model or provider.make(), provider.structured)
-        self.stats = LlmStats()
+
+    def _make_graph(self, provider: LlmProvider, model: BaseChatModel):
+        return build_graph(model, provider.structured)
 
     async def choose_move(self, state: GameState, player_id: str) -> AgentMove:
         start = time.perf_counter()
@@ -203,8 +210,9 @@ class LlmAgent:
         st.seconds += time.perf_counter() - start
         st.tokens_in += out["tokens_in"]
         st.tokens_out += out["tokens_out"]
+        st.tool_calls += out.get("tool_calls", 0)
         if out["fell_back"]:
             st.fallbacks += 1
-        elif out["attempts"] > 1:
+        elif out.get("answers", out["attempts"]) > 1:  # tool rounds aren't retries
             st.retried_moves += 1
         return AgentMove(pile=out["pile"], count=out["count"], reasoning=out["reasoning"])

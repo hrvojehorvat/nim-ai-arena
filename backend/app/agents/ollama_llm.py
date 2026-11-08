@@ -21,7 +21,11 @@ class OllamaProvider(OpenAICompatProvider):
     STRUCTURED_OUTPUT = False
 
     def __init__(
-        self, model: str | None = None, max_tokens: int = 1024, structured: bool | None = None
+        self,
+        model: str | None = None,
+        max_tokens: int = 1024,
+        structured: bool | None = None,
+        tools: str | None = None,
     ) -> None:
         super().__init__(
             model,
@@ -29,6 +33,7 @@ class OllamaProvider(OpenAICompatProvider):
             base_url=os.environ.get("OLLAMA_URL", OLLAMA_URL),
             api_key="ollama",  # Ollama ignores the key, but the client requires one
             structured=structured,
+            tools=tools,
         )
 
     def unavailable_reason(self) -> str | None:
