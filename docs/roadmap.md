@@ -33,10 +33,23 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ✅ 4.2 Headless agent-vs-agent runs + win-rate stats (CLI + notebook cell; no DB/HTTP yet)
 - ✅ 4.3 Random baseline agent (done before 4.2 so the arena has a weak opponent)
 
-## Phase 5 — LLM agent (Anthropic Claude)
-- ⬜ 5.1 LLM StateGraph (prompt → reason → validate → retry → fallback)
-- ⬜ 5.2 Hybrid tool-calling agent (nim_sum tool)
-- ⬜ 5.3 Richer LLM traces (tool calls, retries) on top of the 3.2 `reasoning` column
+## Phase 5 — LLM agents (LangChain chat models + LangGraph)
+Decision: use LangChain chat models (`langchain-anthropic`, `langchain-openai`) behind one common
+interface, so graph nodes don't care which provider answers. Each model is a named agent that any
+seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `backend/.env`.
+- ⬜ 5.1 Agent catalog: `GET /agents` lists available agents; setup dropdown loads it (no LLM yet)
+- ⬜ 5.2 First model call: `langchain-anthropic` + `ANTHROPIC_API_KEY`; notebook cell gets structured
+  `{pile, count, reasoning}` from a raw prompt (no graph)
+- ⬜ 5.3 Prompt builder + reply parsing: pure, tested functions (state + history → prompt)
+- ⬜ 5.4 LLM agent graph: `build_prompt → llm_reason → validate_move`, retries feed the error back,
+  then the safe fallback. Fake chat models in tests. Playable in the UI.
+- ⬜ 5.5 Model configuration: config file defines several named agents (Haiku, Sonnet, Opus) shown in
+  the dropdown and usable in the arena
+- ⬜ 5.6 OpenAI-compatible provider: `langchain-openai` `ChatOpenAI(base_url=...)` covers OpenAI,
+  Modal (vLLM), Ollama, OpenRouter via config entries
+- ⬜ 5.7 LLM arena runs: illegal-move/retry rates, latency, token use next to win rates
+- ⬜ 5.8 Hybrid tool agent: LLM calls a `nim_sum` tool via a LangGraph tool node
+- ⬜ 5.9 Richer traces: `moves.meta` JSON (model, tokens, latency, retries, tool calls) shown in replay
 
 ## Phase 6 — Canvas renderer
 - ⬜ 6.1 Canvas board with click-to-move
