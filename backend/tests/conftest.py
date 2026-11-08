@@ -22,6 +22,7 @@ def _no_ambient_database(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     # Tests shouldn't wait for the human-friendly pause between agent moves.
     monkeypatch.setenv("AGENT_MOVE_DELAY", "0")
+    monkeypatch.setenv("NIM_LLMS", "0")  # no LLM agents (and no localhost probes) in tests
 
 
 ADMIN_URL = os.environ.get(

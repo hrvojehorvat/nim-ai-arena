@@ -59,6 +59,6 @@ def test_catalog_builds_every_provider_without_network(monkeypatch) -> None:
     monkeypatch.setenv("MODAL_LLM_API_KEY", "k")
     for name in LLM_CATALOG:
         assert get_provider(name).make() is not None
-    assert get_provider("ollama_smollm2_135m").model == "smollm2:135m"
+    assert get_provider("ollama_phi3_mini").model == "phi3:mini"
     with pytest.raises(KeyError):
         get_provider("nope")

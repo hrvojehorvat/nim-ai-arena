@@ -316,7 +316,7 @@ docs/      architecture decisions + roadmap
 - `app/agents/ollama_llm.py`: `OllamaProvider` = OpenAI-compatible provider with local defaults
   (`http://localhost:11434/v1`, override with `OLLAMA_URL`).
 - `app/agents/llm_catalog.py`: named LLMs (`claude_haiku`, `modal_qwen7b`, `ollama_qwen2_1_5b`,
-  `ollama_smollm2_135m`), built lazily. Each name becomes a selectable agent in 5.4/5.5.
+  `ollama_phi3_mini`), built lazily. Each name becomes a selectable agent in 5.4/5.5.
 - Observed: tiny Ollama models ignore strict structured output. smollm2:135m adds chatter ("Here is the
   JSON object..."), qwen2:1.5b wraps the JSON in ```json fences, so `with_structured_output` raises a
   ValidationError. 5.3 therefore parses the plain-text reply tolerantly (strip fences, take the first
@@ -328,3 +328,20 @@ docs/      architecture decisions + roadmap
   view), `build_retry_prompt` (feeds an error back), `parse_decision` (first JSON object in the reply,
   tolerates fences/chatter/string numbers, raises `ReplyParseError` with a message fit for the model),
   `to_agent_move` (1-based -> 0-based). Legality is NOT checked here: the graph/engine validates.
+
+## 5.4 LLM agent graph
+- `app/agents/llm_agent.py`: `build_prompt -> llm_reason -> validate_move -> (retry_prompt -> llm_reason | fallback_move)`.
+  Wrong answers (unparsable or illegal) go back to the model with the error, `MAX_RETRIES = 2`, then a safe
+  legal move is played and the reasoning says so. Works with any `BaseChatModel`; tests use scripted fakes.
+- Structured vs text: `LlmProvider.STRUCTURED_OUTPUT` is a *declared* capability (Anthropic and OpenAI-compatible/vLLM
+  yes, Ollama no, since schema enforcement needs Ollama >= 0.5). Structured providers use `with_structured_output`
+  and, if the server ignored the schema, rescue the raw text with `parse_decision`. Others use plain text +
+  `parse_decision`. A capability can't be probed cheaply, so it is declared per provider and overridable
+  (`structured=True`).
+- Availability: `LlmProvider.unavailable_reason()` does cheap checks only (API key set, env URL set, Ollama reachable and
+  model pulled). `build_agents(llms=True)` registers only available LLMs (others logged), so `GET /agents` and the
+  dropdown list only agents that can run. Checked once at startup: start Ollama / set keys before the server.
+  Tests set `NIM_LLMS=0` so they never probe localhost or need keys; the arena still uses non-LLM agents only (5.7).
+- Observed live (Ollama, CPU): qwen2:1.5b answers in ~18 s with a legal move; phi3:mini (3.8B) in ~35 s with a
+  legal (not optimal) move. smollm2:135m and tinyllama never produced usable JSON (always hit the fallback), so
+  they were dropped from the catalog. Modal cold start can exceed 60 s.

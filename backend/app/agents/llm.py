@@ -24,10 +24,23 @@ class LlmProvider:
     """Base for providers. Subclasses set DEFAULT_MODEL and implement `_build`."""
 
     DEFAULT_MODEL: str = ""
+    # Declared (not probed): does the server enforce `with_structured_output` reliably? If not, the
+    # agent asks for plain text and parses it with `parse_decision`.
+    STRUCTURED_OUTPUT: bool = False
 
-    def __init__(self, model: str | None = None, max_tokens: int = 1024) -> None:
+    def __init__(
+        self, model: str | None = None, max_tokens: int = 1024, structured: bool | None = None
+    ) -> None:
         self.model = model or self.DEFAULT_MODEL
         self.max_tokens = max_tokens
+        self.structured = self.STRUCTURED_OUTPUT if structured is None else structured
+
+    def unavailable_reason(self) -> str | None:
+        """None if this provider can be used right now, else why not (missing key, server down...).
+
+        Cheap checks only: never sends a billed request.
+        """
+        return None
 
     def make(self) -> BaseChatModel:
         return self._build()

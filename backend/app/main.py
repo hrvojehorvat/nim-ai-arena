@@ -24,7 +24,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     hub = ws.Hub()
     matches = MatchManager(
         on_change=hub.broadcast,
-        agents=build_agents(),
+        agents=build_agents(llms=os.environ.get("NIM_LLMS", "1") != "0"),
         agent_move_delay=float(os.environ.get("AGENT_MOVE_DELAY", "1.5")),
     )
 

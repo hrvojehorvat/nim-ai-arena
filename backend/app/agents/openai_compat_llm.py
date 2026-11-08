@@ -16,6 +16,7 @@ from app.agents.llm import LlmProvider
 
 class OpenAICompatProvider(LlmProvider):
     DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct"  # what deploy/modal_vllm.py serves
+    STRUCTURED_OUTPUT = True  # vLLM enforces the JSON schema
 
     def __init__(
         self,
@@ -23,10 +24,16 @@ class OpenAICompatProvider(LlmProvider):
         max_tokens: int = 1024,
         base_url: str | None = None,
         api_key: str | None = None,
+        structured: bool | None = None,
     ) -> None:
-        super().__init__(model, max_tokens)
+        super().__init__(model, max_tokens, structured)
         self.base_url = base_url or os.environ.get("MODAL_LLM_URL")
         self.api_key = api_key or os.environ.get("MODAL_LLM_API_KEY")
+
+    def unavailable_reason(self) -> str | None:
+        if not self.base_url or not self.api_key:
+            return "MODAL_LLM_URL / MODAL_LLM_API_KEY are not set"
+        return None
 
     def _build(self) -> BaseChatModel:
         if not self.base_url or not self.api_key:

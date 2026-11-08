@@ -16,7 +16,7 @@ LLM_CATALOG: dict[str, Callable[[], LlmProvider]] = {
     "claude_haiku": lambda: AnthropicProvider("claude-haiku-5-5"),  # paid (needs credit)
     "modal_qwen7b": lambda: OpenAICompatProvider("Qwen/Qwen2.5-7B-Instruct"),  # Modal credits
     "ollama_qwen2_1_5b": lambda: OllamaProvider("qwen2:1.5b"),  # local, free
-    "ollama_smollm2_135m": lambda: OllamaProvider("smollm2:135m"),  # local, free, tiny
+    "ollama_phi3_mini": lambda: OllamaProvider("phi3:mini"),  # local, free, 3.8B
 }
 
 
