@@ -291,3 +291,33 @@ docs/      architecture decisions + roadmap
   Human is offered and an error is shown. The Vite dev proxy forwards `/agents`.
 - Later subphases register LLM agents only when their key/URL is configured, so the dropdown shows
   exactly what can really play.
+
+## 5.2 First model call
+- `app/agents/llm.py` holds `AgentDecision` (pydantic: reasoning, pile, count; piles 1-based like the UI)
+  and the `LlmProvider` base class (`DEFAULT_MODEL`, `make()` -> `BaseChatModel`).
+- `app/agents/anthropic_llm.py`: `AnthropicProvider` subclass (default `claude-haiku-5-5`, key from
+  `ANTHROPIC_API_KEY`). A Modal/Ollama provider (5.6) is just another subclass with its own default model.
+- Graph nodes will only depend on LangChain's `BaseChatModel`, so providers are swappable factories.
+- Structured output goes through `with_structured_output(AgentDecision)`. Note: forced tool choice is
+  rejected by some newer Claude models, so the method may need to switch to native JSON schema (check in 5.4).
+- The notebook loads `backend/.env` with python-dotenv. Tests use no network.
+
+## Modal-hosted open model (early 5.6)
+- `deploy/modal_vllm.py` deploys Qwen2.5-7B-Instruct with vLLM on a Modal L4 (scales to zero, bearer key
+  from a Modal secret). It needs the CUDA devel image (nvcc) or vLLM's FlashInfer sampler crashes.
+- `app/agents/openai_compat_llm.py`: `OpenAICompatProvider(LlmProvider)` wraps `ChatOpenAI(base_url=...)`;
+  URL/key from `MODAL_LLM_URL` / `MODAL_LLM_API_KEY`. Same class will serve Ollama/OpenRouter later.
+- Gotcha (vLLM + `json_schema` structured output): if the prompt never mentions JSON, the model can emit
+  endless whitespace under the guided decoder and hit the token limit (`LengthFinishReasonError`).
+  The prompt must say "answer with a JSON object with keys ..." (5.3 prompt builder must include this).
+  Small models also play Nim badly without help, which is the point of comparing them in the arena.
+
+## LLM catalog and Ollama
+- `app/agents/ollama_llm.py`: `OllamaProvider` = OpenAI-compatible provider with local defaults
+  (`http://localhost:11434/v1`, override with `OLLAMA_URL`).
+- `app/agents/llm_catalog.py`: named LLMs (`claude_haiku`, `modal_qwen7b`, `ollama_qwen2_1_5b`,
+  `ollama_smollm2_135m`), built lazily. Each name becomes a selectable agent in 5.4/5.5.
+- Observed: tiny Ollama models ignore strict structured output. smollm2:135m adds chatter ("Here is the
+  JSON object..."), qwen2:1.5b wraps the JSON in ```json fences, so `with_structured_output` raises a
+  ValidationError. 5.3 therefore parses the plain-text reply tolerantly (strip fences, take the first
+  `{...}`), validates it, and the 5.4 graph retries/falls back.
