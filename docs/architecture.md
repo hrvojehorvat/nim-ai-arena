@@ -321,3 +321,10 @@ docs/      architecture decisions + roadmap
   JSON object..."), qwen2:1.5b wraps the JSON in ```json fences, so `with_structured_output` raises a
   ValidationError. 5.3 therefore parses the plain-text reply tolerantly (strip fences, take the first
   `{...}`), validates it, and the 5.4 graph retries/falls back.
+
+## 5.3 Prompt builder and reply parsing
+- `app/agents/prompt.py` is pure (no network, no LangChain): `build_system_prompt` (rules, JSON-only
+  instruction), `build_user_prompt` (1-based piles, per-pile limits, last 20 moves from the player's
+  view), `build_retry_prompt` (feeds an error back), `parse_decision` (first JSON object in the reply,
+  tolerates fences/chatter/string numbers, raises `ReplyParseError` with a message fit for the model),
+  `to_agent_move` (1-based -> 0-based). Legality is NOT checked here: the graph/engine validates.
