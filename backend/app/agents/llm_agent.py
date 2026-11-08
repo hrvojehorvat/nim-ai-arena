@@ -189,6 +189,10 @@ class LlmAgent:
 
     def __init__(self, provider: LlmProvider, model: BaseChatModel | None = None) -> None:
         self.description = self._describe(provider)
+        self._meta_base = {
+            "model": provider.model,
+            "mode": provider.tools or ("structured" if provider.structured else "text"),
+        }
         self._graph = self._make_graph(provider, model or provider.make())
         self.stats = LlmStats()
 
@@ -215,4 +219,16 @@ class LlmAgent:
             st.fallbacks += 1
         elif out.get("answers", out["attempts"]) > 1:  # tool rounds aren't retries
             st.retried_moves += 1
-        return AgentMove(pile=out["pile"], count=out["count"], reasoning=out["reasoning"])
+        meta = {
+            **self._meta_base,
+            "seconds": round(time.perf_counter() - start, 2),
+            "calls": out["attempts"],
+            "retries": max(0, out.get("answers", out["attempts"]) - 1),
+            "fell_back": out["fell_back"],
+            "tool_calls": out.get("tool_calls", 0),
+            "tokens_in": out["tokens_in"],
+            "tokens_out": out["tokens_out"],
+        }
+        return AgentMove(
+            pile=out["pile"], count=out["count"], reasoning=out["reasoning"], meta=meta
+        )

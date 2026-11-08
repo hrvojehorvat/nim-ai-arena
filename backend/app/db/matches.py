@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import asyncpg
 
@@ -66,6 +67,7 @@ class PgMatchStore:
         status: MatchStatus,
         winner_id: str | None,
         reasoning: str | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> None:
         """Insert the move and update the match row atomically."""
         try:
@@ -73,8 +75,9 @@ class PgMatchStore:
                 await conn.execute(
                     """
                     INSERT INTO moves
-                        (match_id, turn_no, player_id, pile, count, piles_after, auto, reasoning)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                        (match_id, turn_no, player_id, pile, count, piles_after, auto, reasoning,
+                         meta)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
                     """,
                     match_id,
                     turn_no,
@@ -84,6 +87,7 @@ class PgMatchStore:
                     list(move.piles_after),
                     auto,
                     reasoning,
+                    json.dumps(meta) if meta else None,
                 )
                 await conn.execute(
                     """

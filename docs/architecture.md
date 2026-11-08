@@ -387,7 +387,22 @@ docs/      architecture decisions + roadmap
 - **WORKAROUND, not real tool use:** Ollama 0.1.48 has no tool calling, so `tools = "precompute"` makes the graph
   run the tool itself and paste the result into the prompt. It lets the small local models be compared with and
   without help, but results say nothing about tool-use ability. Marked in the toml, the agent description, the
-  module docstring and the roadmap (5.10 removes it). `tools = "native"` on an Ollama entry is rejected at startup.
+  module docstring and the roadmap (bonus phase B1 removes it). `tools = "native"` on an Ollama entry is rejected at startup.
 - Live: qwen2:1.5b + precompute vs nim_optimal (2,3): still lost 0-2 with 50% fallbacks: a 1.5B model can't reliably
   copy the answer even when it is handed over.
+
+## 5.9 Per-move traces (`moves.meta`)
+- `AgentMove` has an optional `meta` dict (JSON-safe). Only LLM agents fill it, from the graph state they already
+  track: `model`, `mode` (`structured | text | native | precompute`), `seconds`, `calls` (every model call),
+  `retries` (rejected final answers; tool rounds don't count), `fell_back`, `tool_calls`, `tokens_in/out`.
+  Deterministic agents, humans and server timeout moves have `meta = NULL`.
+- Migration `0003_move_meta.sql` adds `moves.meta jsonb`. It travels the same single move path as `reasoning`:
+  `_run_agent -> _apply(meta=...) -> MatchStore.record_move`, then `Match.metas[turn_no]` for live state.
+  It is exposed in `MatchOut` (HTTP + WebSocket) and in the replay. A free-form JSON column on purpose: new
+  fields (e.g. tool arguments) need no migration. Tradeoff: no SQL-side typing, so queries like "average
+  seconds per model" need `meta->>'seconds'` casts.
+- UI: `frontend/src/meta.ts` renders one muted line (`🛠 model · mode · 2.8s · 2 calls · 1 tool call · ...`)
+  under the reasoning, in the live move log and in the replay (step banner and move list).
+- Not stored: the raw prompts/replies and tool arguments (size, and may contain nothing beyond the board);
+  arena runs still aren't persisted, only matches.
 

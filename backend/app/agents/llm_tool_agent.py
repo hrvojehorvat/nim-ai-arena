@@ -13,8 +13,8 @@
 !!! precompute is a WORKAROUND, not real tool use. !!!
 Our local Ollama (0.1.48) cannot do tool calling, so the graph itself runs the tool and pastes
 the answer into the prompt; the model only has to copy it. It exists so the small local models
-can be compared with and without help. Roadmap 5.10 upgrades Ollama and replaces it with native
-tools. Do not read arena numbers for "precompute" agents as tool-use ability.
+can be compared with and without help. Roadmap bonus phase B1 upgrades Ollama and replaces it
+with native tools. Do not read arena numbers for "precompute" agents as tool-use ability.
 
 The final answer is always plain text parsed by `parse_decision` (tool calling and enforced JSON
 schemas don't combine reliably across servers). The tool is run by our own node instead of

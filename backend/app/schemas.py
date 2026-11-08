@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, StrictBool, StrictInt
 
@@ -66,6 +67,7 @@ class MoveOut(BaseModel):
     piles_after: list[int]
     auto: bool
     reasoning: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 class MatchOut(BaseModel):
@@ -108,6 +110,7 @@ class MatchOut(BaseModel):
                     piles_after=list(m.piles_after),
                     auto=i in match.auto_moves,
                     reasoning=match.reasons.get(i),
+                    meta=match.metas.get(i),
                 )
                 for i, m in enumerate(state.moves)
             ],
@@ -150,6 +153,7 @@ class ReplayMoveOut(BaseModel):
     piles_after: list[int]
     auto: bool
     reasoning: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 class ReplayOut(BaseModel):

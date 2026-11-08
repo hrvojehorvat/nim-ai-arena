@@ -55,6 +55,23 @@ def state():
     return new_game(GameConfig(piles=(3, 4, 5), players=(A, B)))
 
 
+async def test_move_meta_reports_model_cost_and_retries() -> None:
+    a, _ = agent(["nonsense", GOOD])
+    move = await a.choose_move(state(), "a")
+    assert move.meta is not None
+    assert move.meta | {"seconds": 0} == {
+        "model": "fake",
+        "mode": "text",
+        "seconds": 0,
+        "calls": 2,
+        "retries": 1,
+        "fell_back": False,
+        "tool_calls": 0,
+        "tokens_in": 20,
+        "tokens_out": 10,
+    }
+
+
 async def test_good_reply_becomes_a_zero_based_move() -> None:
     a, model = agent([GOOD])
     move = await a.choose_move(state(), "a")

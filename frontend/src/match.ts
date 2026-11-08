@@ -1,6 +1,7 @@
 import { matchHash, socketUrl } from "./api";
 import { describeRules, renderBoard } from "./board";
 import { h } from "./dom";
+import { metaLine } from "./meta";
 import type { Match, ServerMessage } from "./types";
 
 const PERMANENT_CLOSE_CODES = new Set([4403, 4404]);
@@ -93,6 +94,7 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
           ? h("p", { class: "muted" }, `Last move: ${name(last.player_id)} took ${last.count} from Pile ${last.pile + 1}${last.auto ? " (timed out — auto move)" : ""}`)
           : null,
         last?.reasoning ? h("p", { class: "why" }, `💭 ${last.reasoning}`) : null,
+        metaLine(last?.meta),
       ),
       h(
         "div",
@@ -131,6 +133,7 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
                     {},
                     `${name(mv.player_id)} took ${mv.count} from Pile ${mv.pile + 1} → [${mv.piles_after.join(", ")}]${mv.auto ? " (auto)" : ""}`,
                     mv.reasoning ? h("div", { class: "why" }, mv.reasoning) : null,
+                    metaLine(mv.meta),
                   ),
                 ),
               ),

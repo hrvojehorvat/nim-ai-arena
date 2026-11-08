@@ -191,6 +191,34 @@ async def test_reasoning_is_saved_and_replayed(migrated_pool) -> None:
             assert mv["reasoning"] is None
 
 
+class MetaAgent:
+    """Always takes 1 stone from the first non-empty pile and reports how it 'thought'."""
+
+    description = "test agent with metadata"
+
+    async def choose_move(self, state, player_id) -> AgentMove:
+        pile = next(i for i, s in enumerate(state.piles) if s)
+        return AgentMove(pile, 1, "because", meta={"model": "fake", "calls": 2, "tool_calls": 1})
+
+
+async def test_move_meta_is_live_saved_and_replayed(migrated_pool) -> None:
+    m = MatchManager(agents={"meta": MetaAgent()}, store=PgMatchStore(migrated_pool))
+    bot = PlayerSpec("bot", "Bot", kind="meta")
+    match = await m.create(GameConfig(piles=[1, 2], players=[HUMAN, bot]))
+    await m.join(match.id, "human")
+    await play_human_by_default(m, match)
+
+    replay = await PgMatchHistory(migrated_pool).get_replay(match.id)
+    assert replay is not None
+    for mv in replay["moves"]:
+        if mv["player_id"] == "bot":
+            assert mv["meta"] == {"model": "fake", "calls": 2, "tool_calls": 1}
+        else:
+            assert mv["meta"] is None
+    bot_turns = {i for i, mv in enumerate(match.state.moves) if mv.player_id == "bot"}
+    assert set(match.metas) == bot_turns  # also visible live (MatchOut / WebSocket)
+
+
 # --- HTTP API ---
 
 

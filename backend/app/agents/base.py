@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.game.engine import GameState
 
@@ -13,6 +13,8 @@ class AgentMove:
     pile: int
     count: int
     reasoning: str  # free text: why this move (stored with the move and shown in the UI)
+    # How it was produced (LLM agents: model, tokens, seconds, retries, tool calls). JSON-safe.
+    meta: dict[str, Any] | None = None
 
 
 class Agent(Protocol):

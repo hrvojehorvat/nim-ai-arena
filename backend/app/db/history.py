@@ -67,7 +67,7 @@ class PgMatchHistory:
                     match_id,
                 )
                 moves = await conn.fetch(
-                    "SELECT turn_no, player_id, pile, count, piles_after, auto, reasoning "
+                    "SELECT turn_no, player_id, pile, count, piles_after, auto, reasoning, meta "
                     "FROM moves "
                     "WHERE match_id = $1 ORDER BY turn_no",
                     match_id,
@@ -90,5 +90,7 @@ class PgMatchHistory:
                 {"id": p["player_id"], "name": p["name"], "kind": p["kind"], "seat": p["seat"]}
                 for p in players
             ],
-            "moves": [dict(mv) for mv in moves],
+            "moves": [
+                {**mv, "meta": json.loads(mv["meta"]) if mv["meta"] else None} for mv in moves
+            ],
         }

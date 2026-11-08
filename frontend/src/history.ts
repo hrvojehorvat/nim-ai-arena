@@ -1,6 +1,7 @@
 import { getReplay, listMatches } from "./api";
 import { describeRules, renderBoard } from "./board";
 import { h } from "./dom";
+import { metaLine } from "./meta";
 import type { MatchSummary, Replay } from "./types";
 
 const PAGE_SIZE = 20;
@@ -119,6 +120,7 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
         ),
         renderBoard({ piles, maxTake: r.max_take, canMove: false, onMove: () => {} }),
         mv?.reasoning ? h("p", { class: "why" }, `💭 ${mv.reasoning}`) : null,
+        metaLine(mv?.meta),
         h(
           "div",
           { class: "row controls" },
@@ -147,6 +149,7 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
                     { class: i + 1 === step ? "current" : "" },
                     `${name(m.player_id)} took ${m.count} from Pile ${m.pile + 1} → [${m.piles_after.join(", ")}]${m.auto ? " (auto)" : ""}`,
                     m.reasoning ? h("div", { class: "why" }, m.reasoning) : null,
+                    metaLine(m.meta),
                   );
                   li.addEventListener("click", () => go(i + 1));
                   return li;

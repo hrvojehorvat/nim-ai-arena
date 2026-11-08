@@ -48,12 +48,8 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
 - ✅ 5.6 OpenAI-compatible provider (done within 5.2/5.5: Modal + Ollama use it, OpenRouter = a config entry): `langchain-openai` `ChatOpenAI(base_url=...)` covers OpenAI,
   Modal (vLLM), Ollama, OpenRouter via config entries
 - ✅ 5.7 LLM arena runs: illegal-move/retry rates, latency, token use next to win rates
-- 🚧 5.8 Hybrid tool agent: LLM calls a `nim_sum` tool (native on Modal + Groq; `precompute` WORKAROUND for old Ollama); adds Groq provider
-- ⬜ 5.9 Richer traces: `moves.meta` JSON (model, tokens, latency, retries, tool calls) shown in replay
-- ⬜ 5.10 **Upgrade Ollama and remove the precompute WORKAROUND.** Ollama is 0.1.48 (no tool calling, no
-  JSON-schema output). Upgrade to a current release, switch the `*_precompute` entries in `llm_agents.toml` to
-  `tools = "native"`, set Ollama `STRUCTURED_OUTPUT = True` (verify per model), delete the `precompute` node in
-  `llm_tool_agent.py` and re-run the arena comparisons
+- ✅ 5.8 Hybrid tool agent: LLM calls a `nim_sum` tool (native on Modal + Groq; `precompute` WORKAROUND for old Ollama); adds Groq provider
+- ✅ 5.9 Richer traces: `moves.meta` JSON (model, tokens, latency, retries, tool calls) shown in replay
 
 ## Phase 6 — Canvas renderer
 - ⬜ 6.1 Canvas board with click-to-move
@@ -62,3 +58,12 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
 ## Phase 7 — Deployment (Azure)
 - ⬜ 7.1 Dockerfile, static frontend
 - ⬜ 7.2 Azure Postgres config + deploy README
+
+## Bonus phases (after deployment, pick as wanted)
+- ⬜ B1 **Upgrade Ollama and remove the precompute WORKAROUND.** Ollama is 0.1.48 (no tool calling, no
+  JSON-schema output). Upgrade to a current release, switch the `*_precompute` entries in `llm_agents.toml` to
+  `tools = "native"`, set Ollama `STRUCTURED_OUTPUT = True` (verify per model), delete the `precompute` node in
+  `llm_tool_agent.py` and re-run the arena comparisons
+- ⬜ B2 N-player Nim (parked 4.1): 3+ seats, forfeit on timeout
+- ⬜ B3 Per-seat tokens / auth so a client can only move for its own seat
+- ⬜ B4 Persist arena runs (win rates, LLM stats) in the DB

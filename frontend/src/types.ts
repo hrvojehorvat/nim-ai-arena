@@ -16,6 +16,20 @@ export interface Move {
   piles_after: number[];
   auto: boolean;
   reasoning: string | null;
+  meta?: MoveMeta | null;
+}
+
+/** How an agent produced a move (LLM agents only). */
+export interface MoveMeta {
+  model: string;
+  mode: string;
+  seconds: number;
+  calls: number;
+  retries: number;
+  fell_back: boolean;
+  tool_calls: number;
+  tokens_in: number;
+  tokens_out: number;
 }
 
 export interface Match {

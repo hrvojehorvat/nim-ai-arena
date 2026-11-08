@@ -12,7 +12,7 @@ import uuid
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from app.agents.base import Agent
 from app.game.engine import (
@@ -64,6 +64,8 @@ class Match:
     auto_moves: set[int] = field(default_factory=set)
     # Why a move was made (agents, and timeout moves), keyed by index into state.moves.
     reasons: dict[int, str] = field(default_factory=dict)
+    # How an agent produced a move (model, tokens, ...), keyed like `reasons`.
+    metas: dict[int, dict[str, Any]] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     turn_deadline: float | None = field(default=None, repr=False)  # loop.time() based
     _timer: asyncio.Task | None = field(default=None, repr=False)
@@ -98,6 +100,7 @@ class MatchStore(Protocol):
         status: MatchStatus,
         winner_id: str | None,
         reasoning: str | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> None: ...
 
 
@@ -119,6 +122,7 @@ class NullMatchStore:
         status: MatchStatus,
         winner_id: str | None,
         reasoning: str | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> None:
         pass
 
@@ -239,6 +243,7 @@ class MatchManager:
         count: int,
         auto: bool,
         reasoning: str | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> None:
         """The one path every move takes (human, agent, timeout): validate, save, apply, notify."""
         # Engine raises IllegalMoveError (incl. game_over); nothing changes unless all steps pass.
@@ -253,12 +258,15 @@ class MatchManager:
                 "finished" if new_state.is_over else "active",
                 new_state.winner_id,
                 reasoning,
+                meta,
             )
         match.state = new_state
         if auto:
             match.auto_moves.add(turn_no)
         if reasoning:
             match.reasons[turn_no] = reasoning
+        if meta:
+            match.metas[turn_no] = meta
         self._begin_turn(match)
         await self._changed(match)
 
@@ -338,6 +346,7 @@ class MatchManager:
                     proposal.count,
                     auto=False,
                     reasoning=proposal.reasoning,
+                    meta=proposal.meta,
                 )
                 return
             except IllegalMoveError:
