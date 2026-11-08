@@ -17,13 +17,15 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 ## Phase 2 — Persistence (PostgreSQL)
 - ✅ 2.1 docker-compose Postgres, asyncpg pool, SQL migration runner
 - ✅ 2.2 Schema (matches, match_players, moves) + write-through
-- ⬜ 2.3 History & replay API
+- ✅ 2.3 History & replay API
 - ⬜ 2.4 Replay viewer in UI
 
 ## Phase 3 — LangGraph AI → Milestone 1: human vs agent
 - ⬜ 3.1 Agent interface + deterministic StateGraph: Grundy values `pile % (max_take+1)`
   XOR-ed (reduces to plain nim-sum when unlimited); brute-force tests for both modes
-- ⬜ 3.2 Agent runner in match loop (same validation path as humans)
+- ⬜ 3.2 Agent runner in match loop (same validation path as humans). Every agent move carries a
+  human-readable `reasoning` string, stored in a new nullable `moves.reasoning` column (migration
+  0002), returned in replay and shown live in the UI. Humans have none.
 - ⬜ 3.3 UI seat selection (human/agent) + agent move display
 
 ## Phase 4 — Multi-agent arena
@@ -34,7 +36,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 ## Phase 5 — LLM agent (Anthropic Claude)
 - ⬜ 5.1 LLM StateGraph (prompt → reason → validate → retry → fallback)
 - ⬜ 5.2 Hybrid tool-calling agent (nim_sum tool)
-- ⬜ 5.3 Reasoning traces stored and shown in replay
+- ⬜ 5.3 Richer LLM traces (tool calls, retries) on top of the 3.2 `reasoning` column
 
 ## Phase 6 — Canvas renderer
 - ⬜ 6.1 Canvas board with click-to-move

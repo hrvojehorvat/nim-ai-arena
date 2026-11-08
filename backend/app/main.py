@@ -3,10 +3,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import asyncpg
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from app import ws
+from app.api import HistoryUnavailableError, error_response
 from app.api import router as api_router
+from app.db.history import PgMatchHistory
 from app.db.matches import PgMatchStore
 from app.db.pool import create_pool, database_url_from_env, run_migrations
 from app.game.match import MatchManager
@@ -33,6 +35,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
                     "marked %d unfinished match(es) from a previous run as abandoned", abandoned
                 )
             matches.store = store
+            app.state.history = PgMatchHistory(pool)
         app.state.db = pool
         try:
             yield
@@ -45,6 +48,14 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app.state.hub = hub
     app.state.matches = matches
     app.state.db = None
+    app.state.history = None
+
+    @app.exception_handler(HistoryUnavailableError)
+    async def _history_unavailable(request: Request, exc: HistoryUnavailableError):
+        return error_response(
+            "history_unavailable", "match history needs a database (set DATABASE_URL)"
+        )
+
     app.include_router(api_router)
     app.include_router(ws.router)
 

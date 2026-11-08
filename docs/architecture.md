@@ -151,3 +151,20 @@ docs/      architecture decisions + roadmap
 - **Known gap:** match ids are 12 hex chars (48 bits). A collision would surface as a
   `storage_error` on create; negligible at this scale.
 - **Tests:** DB fixtures moved to `conftest.py`; `FailingStore` tests need no database.
+
+## 2.3 History & replay API
+
+- **Two read-only routes:** `GET /matches?limit=&offset=` (summaries, newest first, limit 1–100,
+  default 20) and `GET /matches/{id}/replay` (setup + players + ordered moves with `piles_after`).
+  Replay also works for unfinished/abandoned matches.
+- **Separate read side:** `db/history.py` (`PgMatchHistory`) is independent of `MatchStore`, which
+  stays write-only. History reads come from the DB, never from live in-memory matches, so
+  `GET /matches/{id}` (live state) and `/replay` (saved record) are deliberately different things.
+- **No DB → 503 `history_unavailable`** (`app.state.history` is None). DB read failures map to
+  503 `storage_error`.
+- The replay is read in one `REPEATABLE READ` transaction so match, players and moves are consistent
+  while a game is still being played.
+- **Test:** a replay is rebuilt from the API output alone and re-run through the engine; every
+  `piles_after` and the winner must match.
+- **Known gap:** list has no filters (by status/player) and uses offset pagination; fine at this
+  scale.

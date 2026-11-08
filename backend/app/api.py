@@ -4,12 +4,20 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
+from app.db.history import PgMatchHistory
 from app.game.engine import IllegalMoveError, InvalidConfigError
-from app.game.match import MatchError, MatchManager
-from app.schemas import CreateMatchRequest, JoinRequest, MatchOut, MoveRequest
+from app.game.match import MatchError, MatchManager, StorageError
+from app.schemas import (
+    CreateMatchRequest,
+    JoinRequest,
+    MatchOut,
+    MatchSummaryOut,
+    MoveRequest,
+    ReplayOut,
+)
 
 router = APIRouter()
 
@@ -24,6 +32,7 @@ STATUS_BY_REASON = {
     "invalid_pile": 422,
     "invalid_count": 422,
     "storage_error": 503,
+    "history_unavailable": 503,
 }
 
 
@@ -41,6 +50,20 @@ def get_manager(request: Request) -> MatchManager:
 Manager = Annotated[MatchManager, Depends(get_manager)]
 
 
+class HistoryUnavailableError(Exception):
+    pass
+
+
+def get_history(request: Request) -> PgMatchHistory:
+    history: PgMatchHistory | None = request.app.state.history
+    if history is None:
+        raise HistoryUnavailableError
+    return history
+
+
+History = Annotated[PgMatchHistory, Depends(get_history)]
+
+
 @router.post("/matches", status_code=201, response_model=MatchOut)
 async def create_match(body: CreateMatchRequest, manager: Manager):
     try:
@@ -52,6 +75,31 @@ async def create_match(body: CreateMatchRequest, manager: Manager):
     except MatchError as e:
         return error_response(e.reason, str(e))
     return MatchOut.from_match(match)
+
+
+@router.get("/matches", response_model=list[MatchSummaryOut])
+async def list_matches(
+    history: History,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    """Saved matches, newest first (requires the database)."""
+    try:
+        return await history.list_matches(limit, offset)
+    except StorageError:
+        return error_response("storage_error", "could not read from the database")
+
+
+@router.get("/matches/{match_id}/replay", response_model=ReplayOut)
+async def get_replay(match_id: str, history: History):
+    """A saved match as setup + ordered moves. Also works for unfinished/abandoned matches."""
+    try:
+        replay = await history.get_replay(match_id)
+    except StorageError:
+        return error_response("storage_error", "could not read from the database")
+    if replay is None:
+        return error_response("match_not_found", f"match {match_id} not found")
+    return replay
 
 
 @router.get("/matches/{match_id}", response_model=MatchOut)

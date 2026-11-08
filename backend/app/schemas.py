@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field, StrictInt
 
 from app.game.engine import GameConfig, PlayerSpec
@@ -100,3 +102,49 @@ class MatchOut(BaseModel):
 class ErrorOut(BaseModel):
     reason: str
     message: str
+
+
+# --- history / replay (read from the database) ---
+
+
+class MatchSummaryOut(BaseModel):
+    id: str
+    status: MatchStatus
+    winner_id: str | None
+    created_at: datetime
+    finished_at: datetime | None
+    initial_piles: list[int]
+    max_take: int | None
+    player_ids: list[str]  # in turn order
+    move_count: int
+
+
+class ReplayPlayerOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    seat: int
+
+
+class ReplayMoveOut(BaseModel):
+    turn_no: int
+    player_id: str
+    pile: int
+    count: int
+    piles_after: list[int]
+    auto: bool
+
+
+class ReplayOut(BaseModel):
+    """A saved match: `initial_piles` + ordered `moves` is enough to step through the game."""
+
+    id: str
+    status: MatchStatus
+    winner_id: str | None
+    created_at: datetime
+    finished_at: datetime | None
+    turn_timeout: float | None
+    initial_piles: list[int]
+    max_take: int | None
+    players: list[ReplayPlayerOut]
+    moves: list[ReplayMoveOut]
