@@ -168,3 +168,15 @@ docs/      architecture decisions + roadmap
   `piles_after` and the winner must match.
 - **Known gap:** list has no filters (by status/player) and uses offset pagination; fine at this
   scale.
+
+## 2.4 Replay viewer in the UI
+
+- **Two new hash routes:** `#/history` (paged table, 20 per page, "Replay" link per row) and
+  `#/replay/<id>` (step buttons, ←/→ keys, clickable move list). Header gets a History link.
+- **Replay reuses `renderBoard` with `canMove: false`.** Each step just picks `initial_piles` or
+  `moves[step-1].piles_after` from the API response; the browser never re-runs game rules.
+- `api.ts` got a shared `request<T>()` helper so error handling ({reason,message} / Pydantic
+  detail) is in one place. `MatchStatus` now includes `abandoned`.
+- Replay and live views are separate on purpose; live matches are not auto-linked to replay yet.
+- No automated frontend tests (consistent with 1.5); checked via typecheck/build and headless
+  Chrome screenshots against a real DB.

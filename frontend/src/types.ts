@@ -1,6 +1,6 @@
 // Mirrors backend/app/schemas.py (MatchOut) and backend/app/ws.py (protocol).
 
-export type MatchStatus = "waiting" | "active" | "finished";
+export type MatchStatus = "waiting" | "active" | "finished" | "abandoned";
 
 export interface Player {
   id: string;
@@ -41,6 +41,33 @@ export interface CreateMatchRequest {
   players: { id: string }[];
   max_take: number | null;
   turn_timeout: number | null;
+}
+
+// GET /matches (history list)
+export interface MatchSummary {
+  id: string;
+  status: MatchStatus;
+  winner_id: string | null;
+  created_at: string;
+  finished_at: string | null;
+  initial_piles: number[];
+  max_take: number | null;
+  player_ids: string[];
+  move_count: number;
+}
+
+// GET /matches/{id}/replay
+export interface Replay {
+  id: string;
+  status: MatchStatus;
+  winner_id: string | null;
+  created_at: string;
+  finished_at: string | null;
+  turn_timeout: number | null;
+  initial_piles: number[];
+  max_take: number | null;
+  players: { id: string; name: string; kind: string; seat: number }[];
+  moves: (Omit<Move, "piles_after"> & { turn_no: number; piles_after: number[] })[];
 }
 
 // Keep in sync with backend/app/game/engine.py

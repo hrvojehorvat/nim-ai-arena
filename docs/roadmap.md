@@ -18,7 +18,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ✅ 2.1 docker-compose Postgres, asyncpg pool, SQL migration runner
 - ✅ 2.2 Schema (matches, match_players, moves) + write-through
 - ✅ 2.3 History & replay API
-- ⬜ 2.4 Replay viewer in UI
+- ✅ 2.4 Replay viewer in UI
 
 ## Phase 3 — LangGraph AI → Milestone 1: human vs agent
 - ⬜ 3.1 Agent interface + deterministic StateGraph: Grundy values `pile % (max_take+1)`

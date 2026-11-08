@@ -1,13 +1,9 @@
-import type { CreateMatchRequest, Match } from "./types";
+import type { CreateMatchRequest, Match, MatchSummary, Replay } from "./types";
 
 export class ApiError extends Error {}
 
-export async function createMatch(body: CreateMatchRequest): Promise<Match> {
-  const res = await fetch("/matches", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, init);
   const data = await res.json();
   if (!res.ok) {
     // Our errors are {reason, message}; Pydantic validation errors are {detail: [...]}.
@@ -18,8 +14,21 @@ export async function createMatch(body: CreateMatchRequest): Promise<Match> {
         : res.statusText);
     throw new ApiError(message);
   }
-  return data as Match;
+  return data as T;
 }
+
+export const createMatch = (body: CreateMatchRequest) =>
+  request<Match>("/matches", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+export const listMatches = (limit: number, offset: number) =>
+  request<MatchSummary[]>(`/matches?limit=${limit}&offset=${offset}`);
+
+export const getReplay = (matchId: string) =>
+  request<Replay>(`/matches/${encodeURIComponent(matchId)}/replay`);
 
 export function socketUrl(matchId: string, playerId: string | null): string {
   const proto = location.protocol === "https:" ? "wss" : "ws";
