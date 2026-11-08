@@ -1,7 +1,7 @@
 """Pure Nim maths for the deterministic agent (no LangGraph, no I/O).
 
 Position = tuple of pile sizes. "Winning" means the player to move can force a win against
-best play by one opponent. With 3+ players none of this is optimal (known limitation).
+best play by the opponent (two-player Nim).
 
 Rules covered:
   * standard (last stone wins), any `max_take`: Grundy value of a pile is `pile % (k+1)`

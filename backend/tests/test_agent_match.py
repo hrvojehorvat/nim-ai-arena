@@ -76,6 +76,21 @@ async def test_agent_vs_agent_plays_by_itself() -> None:
     assert len(match.reasons) == len(match.state.moves)
 
 
+async def test_agent_move_delay_slows_the_game_down() -> None:
+    m = manager(agent_move_delay=0.1)
+    match = await m.create(GameConfig(piles=[3, 4, 5], players=[BOT, BOT2]))
+    start = time.monotonic()
+    await until(lambda: match.state.is_over)
+    # Every agent move waits at least the delay.
+    assert time.monotonic() - start >= 0.1 * len(match.state.moves) * 0.9
+
+
+async def test_per_match_delay_overrides_the_default() -> None:
+    m = manager(agent_move_delay=5.0)  # default would be far too slow
+    match = await m.create(GameConfig(piles=[3, 4, 5], players=[BOT, BOT2]), agent_move_delay=0)
+    await until(lambda: match.state.is_over)
+
+
 async def test_clients_cannot_move_for_an_agent_seat() -> None:
     m = manager()
     match = await m.create(GameConfig(piles=[3, 4, 5], players=[HUMAN, BOT]))

@@ -7,7 +7,7 @@ from typing import Literal
 
 MAX_PILES = 10
 MAX_STONES_PER_PILE = 30
-MIN_PLAYERS = 2
+NUM_PLAYERS = 2  # Two-player Nim only for now; N players is a possible later extension.
 
 # "human", or the name of a registered agent type (e.g. "nim_optimal").
 PlayerKind = str
@@ -63,8 +63,8 @@ class GameConfig:
                 )
         if sum(self.piles) == 0:
             raise InvalidConfigError("at least one pile must be non-empty")
-        if len(self.players) < MIN_PLAYERS:
-            raise InvalidConfigError(f"at least {MIN_PLAYERS} players are required")
+        if len(self.players) != NUM_PLAYERS:
+            raise InvalidConfigError(f"exactly {NUM_PLAYERS} players are required")
         ids = [p.id for p in self.players]
         if len(set(ids)) != len(ids):
             raise InvalidConfigError("player ids must be unique")

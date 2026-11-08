@@ -81,8 +81,6 @@ def _explain_position(s: AgentState) -> str:
 def select_move(s: AgentState) -> AgentState:
     state, ev, candidate = s["state"], s["evaluation"], s["candidate"]
     where = _explain_position(s)
-    players = len(state.config.players)
-    note = f" (With {players} players this strategy is not optimal.)" if players > 2 else ""
     if candidate is not None:
         pile, count = candidate
         after = state.piles[pile] - count
@@ -91,8 +89,7 @@ def select_move(s: AgentState) -> AgentState:
         else:
             verdict = "I'm winning"
         reasoning = (
-            f"{where} {verdict}: take {count} from pile {pile + 1} "
-            f"({state.piles[pile]}→{after}).{note}"
+            f"{where} {verdict}: take {count} from pile {pile + 1} ({state.piles[pile]}→{after})."
         )
         if state.config.last_stone_loses and state.config.max_take is None:
             rest = [after if i == pile else p for i, p in enumerate(state.piles)]
@@ -105,7 +102,7 @@ def select_move(s: AgentState) -> AgentState:
         pile, count = strategy.stalling_move(state.piles)
         reasoning = (
             f"{where} That is a losing position against best play, so I take {count} from the "
-            f"biggest pile (pile {pile + 1}) to keep the game going and hope for a mistake.{note}"
+            f"biggest pile (pile {pile + 1}) to keep the game going and hope for a mistake."
         )
     return {"pile": pile, "count": count, "reasoning": reasoning}
 

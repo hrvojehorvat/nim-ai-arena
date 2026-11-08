@@ -26,9 +26,9 @@ docs/      architecture decisions + roadmap
   so history is self-describing and replayable from the initial config.
 - **Stable error codes:** `IllegalMoveError.reason` (`game_over`, `not_your_turn`,
   `invalid_pile`, `invalid_count`) so WS/HTTP clients and agents can react programmatically.
-- **Limits:** 1–20 piles, 0–100 stones each, ≥1 non-empty pile, ≥2 players with unique ids.
-- **Turn order:** round-robin by seat index; supports N players already (strategy optimality for
-  N>2 is an agent concern, not an engine one).
+- **Limits:** 1–20 piles, 0–100 stones each, ≥1 non-empty pile, exactly 2 players with unique ids.
+- **Turn order:** seats alternate (implemented as round-robin by seat index, so N players is a
+  small extension later; see "Two players only" below).
 - **Domain vs API models:** engine uses dataclasses; Pydantic models will live at the API layer
   (1.2) and convert at the boundary.
 
@@ -184,9 +184,8 @@ docs/      architecture decisions + roadmap
 ## Rule options: last stone loses and explicit "no time limit"
 
 - **`GameConfig.last_stone_loses: bool = False`.** In last stone loses the player who takes the last stone loses. The
-  engine still has a single `winner_id`, so the winner is the *next player in turn order* (with 2
-  players that's simply the opponent; with 3+ it's an arbitrary-but-deterministic choice, to be
-  revisited with elimination rules in 4.1). `current_player_index` stays on the winner, as before.
+  engine still has a single `winner_id`, so the winner is the *next player in turn order* (i.e. the
+  opponent). `current_player_index` stays on the winner, as before.
 - Stored in `matches.config` JSONB (no migration needed); rows saved before this change read as
   `last_stone_loses=false` via `config.get("last_stone_loses", False)`. Exposed in match, list and replay responses.
 - **Strategy impact for 3.1:** last stone loses Nim differs from normal play only near the end (when every
@@ -215,7 +214,7 @@ docs/      architecture decisions + roadmap
 - **Tests (`test_agent.py`):** an independent brute-force solver covers every board of ≤3 piles of
   0–5 stones for max_take ∈ {none,1,2,3} × both rule sets: the evaluation matches the solver and the
   agent always leaves a losing position when a winning move exists.
-- **Known limitations:** not optimal with 3+ players (noted in the reasoning text); the search is CPU
+- **Known limitations:** the search is CPU
   work, so 3.2 must run agents off the event loop (thread) so a slow search can't stall the server.
 - `pyproject.toml` ignores a Python 3.14 DeprecationWarning from langsmith (a langgraph dependency).
   Running pytest with `-W error` now fails at import because of it; use plain `uv run pytest`.
@@ -242,3 +241,23 @@ docs/      architecture decisions + roadmap
 - One human + agents → the UI jumps straight to that seat; all agents → spectate; 2+ humans → one
   link per human seat. No auth yet: the seat is the URL, so a "player sees only their screen" model
   needs per-seat tokens later (Nim has no hidden info, so this is access control, not secrecy).
+
+## Two players only (decision after 3.3)
+
+- `GameConfig` now requires exactly 2 players (`NUM_PLAYERS`); the API returns 422 otherwise. The
+  setup form has two fixed seats. Removed: the add/remove-player UI, the "not optimal with 3+
+  players" note in agent reasoning, and the 3-player tests.
+- Why: nim-sum strategy only means something for two players, and N-player needs elimination /
+  forfeit rules that nothing requires yet. Idea parked for later (see roadmap).
+- Kept deliberately: round-robin turn indexing and the seat-based data model, so lifting the limit
+  later means new rules, not a rewrite.
+
+## Agent move delay
+
+- `MatchManager(agent_move_delay=...)` sleeps before each agent move is applied (after thinking,
+  before the lock), so agent-vs-agent games are watchable. `main.py` reads `AGENT_MOVE_DELAY`
+  (seconds, default 1.5; 0 = instant) as the default. Each match can override it with
+  `agent_move_delay` in `POST /matches` (setup form field, empty = default), so you can switch
+  between watching and fast runs without restarting. Tests force 0 via `conftest.py`. It also applies to the
+  agent's reply in human-vs-agent games, which doubles as a natural "thinking" pause. The turn
+  timeout clock keeps running during the pause.

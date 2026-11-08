@@ -1,4 +1,5 @@
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -21,7 +22,11 @@ def create_app(database_url: str | None = None) -> FastAPI:
     """`database_url` defaults to $DATABASE_URL; with neither set the app runs without a DB."""
     url = database_url or database_url_from_env()
     hub = ws.Hub()
-    matches = MatchManager(on_change=hub.broadcast, agents={"nim_optimal": NimOptimalAgent()})
+    matches = MatchManager(
+        on_change=hub.broadcast,
+        agents={"nim_optimal": NimOptimalAgent()},
+        agent_move_delay=float(os.environ.get("AGENT_MOVE_DELAY", "1.5")),
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

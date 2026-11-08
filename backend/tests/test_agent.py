@@ -65,9 +65,3 @@ async def test_big_last_stone_loses_board_falls_back_without_crashing() -> None:
     move = await NimOptimalAgent().choose_move(state, "a")
     apply_move(state, "a", move.pile, move.count)
     assert "too big to solve" in move.reasoning
-
-
-async def test_many_players_note() -> None:
-    cfg = GameConfig(piles=[3, 4, 5], players=[A, B, PlayerSpec("c", "C")])
-    move = await NimOptimalAgent().choose_move(new_game(cfg), "a")
-    assert "not optimal" in move.reasoning

@@ -29,7 +29,7 @@ Each subphase = one commit. Status: ✅ done · 🚧 in progress · ⬜ todo
 - ✅ 3.3 UI seat selection (human/agent per seat); one human vs agents opens that seat directly
 
 ## Phase 4 — Multi-agent arena
-- ⬜ 4.1 N-player matches + forfeit-on-timeout policy (elimination rules, recorded in history)
+- ➖ 4.1 N-player matches + forfeit-on-timeout: dropped for now (two players only). Parked idea.
 - ⬜ 4.2 Headless agent-vs-agent runs + win-rate stats
 - ⬜ 4.3 Random baseline agent
 

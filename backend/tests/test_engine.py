@@ -13,7 +13,6 @@ from app.game.engine import (
 
 ALICE = PlayerSpec(id="alice", name="Alice")
 BOB = PlayerSpec(id="bob", name="Bob")
-CAROL = PlayerSpec(id="carol", name="Carol")
 
 
 def make_config(piles=(3, 4, 5), players=(ALICE, BOB)) -> GameConfig:
@@ -50,9 +49,11 @@ def test_invalid_piles(piles) -> None:
         make_config(piles=piles)
 
 
-def test_too_few_players() -> None:
+@pytest.mark.parametrize("n", [0, 1, 3])
+def test_exactly_two_players(n: int) -> None:
+    players = tuple(PlayerSpec(id=f"p{i}", name=f"P{i}") for i in range(n))
     with pytest.raises(InvalidConfigError):
-        make_config(players=(ALICE,))
+        make_config(players=players)
 
 
 def test_duplicate_player_ids() -> None:
@@ -85,15 +86,6 @@ def test_apply_move_does_not_mutate_input() -> None:
     assert original.piles == (3, 4, 5)
     assert original.moves == ()
     assert original.current_player.id == "alice"
-
-
-def test_three_player_rotation() -> None:
-    state = new_game(make_config(piles=(10,), players=(ALICE, BOB, CAROL)))
-    order = []
-    for _ in range(4):
-        order.append(state.current_player.id)
-        state = apply_move(state, state.current_player.id, pile=0, count=1)
-    assert order == ["alice", "bob", "carol", "alice"]
 
 
 @pytest.mark.parametrize(
@@ -181,13 +173,6 @@ def test_last_stone_loses_last_stone_taker_loses() -> None:
     assert not state.is_over
     state = apply_move(state, "bob", 1, 1)  # bob takes the last stone -> bob loses
     assert state.is_over and state.winner_id == "alice"
-
-
-def test_last_stone_loses_winner_is_next_player_with_three_players() -> None:
-    state = new_game(GameConfig(piles=[1], players=[ALICE, BOB, CAROL], last_stone_loses=True))
-    state = apply_move(state, "alice", 0, 1)
-    assert state.winner_id == "bob"
-    assert state.current_player.id == "bob"
 
 
 def test_standard_game_unchanged_by_default() -> None:

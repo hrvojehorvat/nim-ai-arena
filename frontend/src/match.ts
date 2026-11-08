@@ -56,6 +56,11 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
       view.replaceChildren(h("p", { class: "muted" }, "Connecting…"));
       return;
     }
+    // The view is rebuilt on every update; remember scroll positions so reading isn't interrupted.
+    const oldLog = view.querySelector<HTMLElement>(".log");
+    const logTop = oldLog?.scrollTop ?? 0;
+    const logHeight = oldLog?.scrollHeight ?? 0;
+    const pageY = window.scrollY;
     const m = match;
     const myTurn = m.status === "active" && m.current_player_id === playerId;
     const rules = describeRules(m.max_take, m.last_stone_loses);
@@ -134,6 +139,12 @@ export function renderMatch(root: HTMLElement, matchId: string, playerId: string
       ),
     );
     view.className = "match-layout";
+    const newLog = view.querySelector<HTMLElement>(".log");
+    if (newLog && logTop > 0) {
+      // Newest entries are added on top: keep the entries being read in the same place.
+      newLog.scrollTop = logTop + (newLog.scrollHeight - logHeight);
+    }
+    window.scrollTo(0, pageY);
     updateTimer();
   };
 

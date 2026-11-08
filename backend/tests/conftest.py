@@ -20,6 +20,8 @@ def anyio_backend() -> str:
 def _no_ambient_database(monkeypatch: pytest.MonkeyPatch) -> None:
     # A developer's shell DATABASE_URL must never leak into tests that don't ask for a DB.
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    # Tests shouldn't wait for the human-friendly pause between agent moves.
+    monkeypatch.setenv("AGENT_MOVE_DELAY", "0")
 
 
 ADMIN_URL = os.environ.get(

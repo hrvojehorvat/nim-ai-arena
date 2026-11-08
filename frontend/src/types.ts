@@ -41,6 +41,7 @@ export type ServerMessage =
 export interface CreateMatchRequest {
   piles: number[];
   players: { id: string; kind?: string }[];
+  agent_move_delay?: number | null;
   max_take: number | null;
   last_stone_loses: boolean;
   turn_timeout: number | null;

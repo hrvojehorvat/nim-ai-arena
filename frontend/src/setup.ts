@@ -2,8 +2,6 @@ import { createMatch, matchHash } from "./api";
 import { h } from "./dom";
 import { MAX_PILES, MAX_STONES_PER_PILE, type Match } from "./types";
 
-const MAX_PLAYERS = 6;
-
 function parsePiles(raw: string): number[] {
   const parts = raw.split(/[\s,]+/).filter(Boolean);
   if (parts.length < 1 || parts.length > MAX_PILES) {
@@ -29,6 +27,13 @@ function optionalNumber(raw: string, label: string, integer: boolean): number | 
   return n;
 }
 
+function parseDelay(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 30) throw new Error("Agent move delay must be 0–30 seconds.");
+  return n;
+}
+
 // Empty or 0 means "no time limit".
 function parseTimeLimit(raw: string): number | null {
   if (raw.trim() === "" || Number(raw) === 0) return null;
@@ -51,6 +56,7 @@ export function renderSetup(root: HTMLElement): () => void {
   const pilesInput = h("input", { id: "piles", value: "3, 4, 5", autocomplete: "off" });
   const maxTakeInput = h("input", { id: "max-take", type: "number", min: 1, placeholder: "unlimited" });
   const timeoutInput = h("input", { id: "timeout", type: "number", min: 0, max: 3600, placeholder: "unlimited" });
+  const delayInput = h("input", { id: "agent-delay", type: "number", min: 0, max: 30, step: "0.5", placeholder: "default" });
   const lastStoneLosesInput = h("input", { id: "last_stone_loses", type: "checkbox" });
   const playersBox = h("div", { class: "players-inputs" });
   const errorBox = h("p", { class: "form-error", role: "alert" });
@@ -72,19 +78,11 @@ export function renderSetup(root: HTMLElement): () => void {
   };
   const redrawPlayers = () => {
     playersBox.replaceChildren(
-      ...playerInputs.map(({ kind, input }, i) => {
-        const remove = h("button", { type: "button", class: "link", disabled: playerInputs.length <= 2 }, "remove");
-        remove.addEventListener("click", () => {
-          playerInputs.splice(i, 1);
-          redrawPlayers();
-        });
-        return h("div", { class: "player-input" }, h("span", { class: "seat" }, `Seat ${i + 1}`), kind, input, remove);
-      }),
+      ...playerInputs.map(({ kind, input }, i) =>
+        h("div", { class: "player-input" }, h("span", { class: "seat" }, `Seat ${i + 1}`), kind, input),
+      ),
     );
-    addBtn.disabled = playerInputs.length >= MAX_PLAYERS;
   };
-  const addBtn = h("button", { type: "button", class: "secondary" }, "+ Add player");
-  addBtn.addEventListener("click", () => addPlayer(`player${playerInputs.length + 1}`));
   addPlayer("you");
   addPlayer("bot", "nim_optimal");
 
@@ -98,13 +96,14 @@ export function renderSetup(root: HTMLElement): () => void {
     h("h2", {}, "New match"),
     h("label", { for: "piles" }, `Piles (stones per pile, up to ${MAX_PILES} piles of 0–${MAX_STONES_PER_PILE})`),
     h("div", { class: "row" }, pilesInput, randomBtn),
-    h("label", {}, "Players (turn order)"),
+    h("label", {}, "Players (seat 1 moves first)"),
     playersBox,
-    addBtn,
     h("div", { class: "row two" },
       h("div", {}, h("label", { for: "max-take" }, "Max stones per move"), maxTakeInput),
       h("div", {}, h("label", { for: "timeout" }, "Turn time limit (seconds, empty = unlimited)"), timeoutInput),
     ),
+    h("label", { for: "agent-delay" }, "Agent move delay (seconds, empty = server default, 0 = instant)"),
+    delayInput,
     h("label", { class: "check" }, lastStoneLosesInput, "Last stone loses (the player who takes the last stone is the loser)"),
     errorBox,
     submit,
@@ -124,6 +123,7 @@ export function renderSetup(root: HTMLElement): () => void {
         max_take: optionalNumber(maxTakeInput.value, "Max stones per move", true),
         last_stone_loses: lastStoneLosesInput.checked,
         turn_timeout: parseTimeLimit(timeoutInput.value),
+        agent_move_delay: parseDelay(delayInput.value),
       });
       const humans = match.players.filter((p) => p.kind === "human");
       if (humans.length === 1) {

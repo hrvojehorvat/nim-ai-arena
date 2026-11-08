@@ -58,6 +58,7 @@ class Match:
     state: GameState
     # Seconds a player has per turn; None = no limit. On expiry the server plays default_move.
     turn_timeout: float | None = None
+    agent_move_delay: float | None = None  # None = use the manager's default
     joined: set[str] = field(default_factory=set)
     # Indices into state.moves that the server played on a player's behalf (timeout).
     auto_moves: set[int] = field(default_factory=set)
@@ -142,10 +143,13 @@ class MatchManager:
         on_change: OnChange | None = None,
         store: MatchStore | None = None,
         agents: dict[str, Agent] | None = None,
+        agent_move_delay: float = 0.0,
     ) -> None:
         self._matches: dict[str, Match] = {}
         # Seat kind -> agent. Any kind that isn't "human" must be registered here.
         self._agents: dict[str, Agent] = agents or {}
+        # Pause before each agent move so a human can follow agent-vs-agent games.
+        self._agent_move_delay = agent_move_delay
         # Called while holding the match lock after every state change, so observers
         # (e.g. WebSocket broadcast) see changes in order. Must not call back into the manager.
         self._on_change = on_change
@@ -155,13 +159,23 @@ class MatchManager:
         if self._on_change is not None:
             await self._on_change(match)
 
-    async def create(self, config: GameConfig, turn_timeout: float | None = None) -> Match:
+    async def create(
+        self,
+        config: GameConfig,
+        turn_timeout: float | None = None,
+        agent_move_delay: float | None = None,
+    ) -> Match:
         state = new_game(config)
         for p in config.players:
             if p.kind != "human" and p.kind not in self._agents:
                 known = ", ".join(["human", *sorted(self._agents)])
                 raise MatchError("unknown_agent", f"unknown player kind {p.kind!r} (use {known})")
-        match = Match(id=uuid.uuid4().hex[:12], state=state, turn_timeout=turn_timeout)
+        match = Match(
+            id=uuid.uuid4().hex[:12],
+            state=state,
+            turn_timeout=turn_timeout,
+            agent_move_delay=agent_move_delay,
+        )
         # Agents don't "connect": their seats are taken from the start.
         match.joined = {p.id for p in config.players if p.kind != "human"}
         with _storage_guard():
@@ -303,6 +317,9 @@ class MatchManager:
             proposal = await agent.choose_move(snapshot, player_id)
         except Exception:
             log.exception("agent for %s failed in match %s", player_id, match.id)
+        delay = self._agent_move_delay if match.agent_move_delay is None else match.agent_move_delay
+        if delay > 0:
+            await asyncio.sleep(delay)
         async with match.lock:
             # A timeout move (or anything else) may have taken this turn while we were thinking.
             if match.status != "active" or len(match.state.moves) != turn_no:

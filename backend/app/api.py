@@ -73,7 +73,9 @@ async def create_match(body: CreateMatchRequest, manager: Manager):
     except InvalidConfigError as e:
         return error_response("invalid_config", str(e))
     try:
-        match = await manager.create(config, turn_timeout=body.turn_timeout)
+        match = await manager.create(
+            config, turn_timeout=body.turn_timeout, agent_move_delay=body.agent_move_delay
+        )
     except MatchError as e:
         return error_response(e.reason, str(e))
     return MatchOut.from_match(match)

@@ -25,6 +25,8 @@ class CreateMatchRequest(BaseModel):
     # Seconds per turn; None = no limit. On expiry the server plays 1 stone from the first
     # non-empty pile for the current player.
     turn_timeout: float | None = Field(default=None, gt=0, le=3600)
+    # Pause before each agent move, in seconds; None = server default (AGENT_MOVE_DELAY).
+    agent_move_delay: float | None = Field(default=None, ge=0, le=30)
 
     def to_config(self) -> GameConfig:
         return GameConfig(
