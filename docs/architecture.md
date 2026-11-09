@@ -427,3 +427,6 @@ docs/      architecture decisions + roadmap
 - Also in 6.1: the server entry point (`app.main`) now loads `backend/.env` like the arena CLI (shell vars
   win), so Groq/Modal agents and `DATABASE_URL` work with plain `uv run uvicorn app.main:app`. The setup form
   defaults to `agent1` = `nim_optimal` vs `agent2` = a local Ollama model (free; `random` if Ollama is down).
+- Setup form: the win rule is an explicit dropdown (default "last stone wins", standard Nim) instead of a
+  checkbox, and `GET /defaults` reports the server's `agent_move_delay` so the form can show
+  "empty = server default: 1.5".

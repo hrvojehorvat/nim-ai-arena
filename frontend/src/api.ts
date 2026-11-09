@@ -26,6 +26,9 @@ export const createMatch = (body: CreateMatchRequest) =>
 
 export const listAgents = () => request<AgentInfo[]>("/agents");
 
+/** Server values used when a setup field is left empty. */
+export const getDefaults = () => request<{ agent_move_delay: number }>("/defaults");
+
 export const listMatches = (limit: number, offset: number) =>
   request<MatchSummary[]>(`/matches?limit=${limit}&offset=${offset}`);
 

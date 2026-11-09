@@ -38,6 +38,12 @@ class CreateMatchRequest(BaseModel):
         )
 
 
+class DefaultsOut(BaseModel):
+    """Server defaults that apply when a match leaves a field empty."""
+
+    agent_move_delay: float
+
+
 class AgentOut(BaseModel):
     name: str
     description: str

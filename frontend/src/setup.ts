@@ -1,4 +1,4 @@
-import { createMatch, listAgents, matchHash } from "./api";
+import { createMatch, getDefaults, listAgents, matchHash } from "./api";
 import { h } from "./dom";
 import { MAX_PILES, MAX_STONES_PER_PILE, type AgentInfo, type Match } from "./types";
 
@@ -54,7 +54,25 @@ export function renderSetup(root: HTMLElement): () => void {
   const maxTakeInput = h("input", { id: "max-take", type: "number", min: 1, placeholder: "unlimited" });
   const timeoutInput = h("input", { id: "timeout", type: "number", min: 0, max: 3600, placeholder: "unlimited" });
   const delayInput = h("input", { id: "agent-delay", type: "number", min: 0, max: 30, step: "0.5", placeholder: "default" });
-  const lastStoneLosesInput = h("input", { id: "last_stone_loses", type: "checkbox" });
+  // An explicit choice (not a checkbox) so the default rule is visible: standard Nim, last stone wins.
+  const ruleInput = h(
+    "select",
+    { id: "rule" },
+    h("option", { value: "wins" }, "Last stone wins (standard)"),
+    h("option", { value: "loses" }, "Last stone loses (misère)"),
+  );
+  ruleInput.value = "wins";
+  const delayLabel = h(
+    "label",
+    { for: "agent-delay" },
+    "Agent move delay (seconds, empty = server default, 0 = instant)",
+  );
+  getDefaults()
+    .then(({ agent_move_delay: d }) => {
+      delayLabel.textContent = `Agent move delay (seconds, empty = server default: ${d}, 0 = instant)`;
+      delayInput.placeholder = `default: ${d}`;
+    })
+    .catch(() => {}); // keep the generic label
   const playersBox = h("div", { class: "players-inputs" });
   const errorBox = h("p", { class: "form-error", role: "alert" });
   const result = h("div", { class: "created" });
@@ -132,9 +150,10 @@ export function renderSetup(root: HTMLElement): () => void {
       h("div", {}, h("label", { for: "max-take" }, "Max stones per move"), maxTakeInput),
       h("div", {}, h("label", { for: "timeout" }, "Turn time limit (seconds, empty = unlimited)"), timeoutInput),
     ),
-    h("label", { for: "agent-delay" }, "Agent move delay (seconds, empty = server default, 0 = instant)"),
+    delayLabel,
     delayInput,
-    h("label", { class: "check" }, lastStoneLosesInput, "Last stone loses (the player who takes the last stone is the loser)"),
+    h("label", { for: "rule" }, "Winner"),
+    ruleInput,
     errorBox,
     submit,
   );
@@ -151,7 +170,7 @@ export function renderSetup(root: HTMLElement): () => void {
         piles: parsePiles(pilesInput.value),
         players: players.map((id, i) => ({ id, kind: playerInputs[i].kind.value })),
         max_take: optionalNumber(maxTakeInput.value, "Max stones per move", true),
-        last_stone_loses: lastStoneLosesInput.checked,
+        last_stone_loses: ruleInput.value === "loses",
         turn_timeout: parseTimeLimit(timeoutInput.value),
         agent_move_delay: parseDelay(delayInput.value),
       });

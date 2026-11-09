@@ -160,6 +160,11 @@ class MatchManager:
         self.store: MatchStore = store or NullMatchStore()
 
     @property
+    def agent_move_delay(self) -> float:
+        """Default pause before agent moves (a match's own `agent_move_delay` overrides it)."""
+        return self._agent_move_delay
+
+    @property
     def agents(self) -> dict[str, Agent]:
         return self._agents
 

@@ -13,6 +13,7 @@ from app.game.match import MatchError, MatchManager, StorageError
 from app.schemas import (
     AgentOut,
     CreateMatchRequest,
+    DefaultsOut,
     JoinRequest,
     MatchOut,
     MatchSummaryOut,
@@ -89,6 +90,12 @@ async def list_agents(manager: Manager) -> list[AgentOut]:
         AgentOut(name=name, description=agent.description)
         for name, agent in sorted(manager.agents.items())
     ]
+
+
+@router.get("/defaults", response_model=DefaultsOut)
+async def get_defaults(manager: Manager) -> DefaultsOut:
+    """Values used when a new match leaves the field empty (shown in the setup form)."""
+    return DefaultsOut(agent_move_delay=manager.agent_move_delay)
 
 
 @router.get("/matches", response_model=list[MatchSummaryOut])

@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       "/matches": BACKEND,
       "/agents": BACKEND,
+      "/defaults": BACKEND,
       "/health": BACKEND,
       "/ws": { target: BACKEND, ws: true },
     },
