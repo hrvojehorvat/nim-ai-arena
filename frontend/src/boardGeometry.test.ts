@@ -7,6 +7,7 @@ import {
   maxCount,
   selectionCount,
   stonesSpan,
+  takeFrame,
 } from "./boardGeometry";
 
 describe("selectionCount / maxCount", () => {
@@ -111,5 +112,31 @@ describe("applyKey", () => {
     expect(applyKey({ pile: 2, count: 4 }, "Escape", piles, null)).toEqual({ sel: null, move: false });
     expect(applyKey(null, "a", piles, null)).toBeNull();
     expect(applyKey(null, "Enter", [0, 0], null)).toBeNull();
+  });
+});
+
+describe("takeFrame", () => {
+  it("starts as a resting stone and ends gone", () => {
+    expect(takeFrame(0, 0, 3)).toEqual({ lift: 0, rise: 0, alpha: 1, scale: 1 });
+    for (let k = 0; k < 3; k++) expect(takeFrame(1, k, 3).alpha).toBe(0);
+  });
+  it("lights up and holds before anything leaves", () => {
+    const f = takeFrame(0.3, 0, 4);
+    expect(f.lift).toBe(1);
+    expect(f.rise).toBe(0);
+    expect(f.alpha).toBe(1);
+  });
+  it("lets the rightmost stone go first", () => {
+    const left = takeFrame(0.55, 0, 4);
+    const right = takeFrame(0.55, 3, 4);
+    expect(right.rise).toBeGreaterThan(left.rise);
+  });
+  it("rises monotonically", () => {
+    let prev = -1;
+    for (let t = 0; t <= 1; t += 0.05) {
+      const f = takeFrame(t, 1, 3);
+      expect(f.rise).toBeGreaterThanOrEqual(prev);
+      prev = f.rise;
+    }
   });
 });

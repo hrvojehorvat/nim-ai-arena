@@ -188,3 +188,35 @@ export function applyKey(
       return null;
   }
 }
+
+// --- taking animation (6.2) -----------------------------------------------------------------
+
+/** Total length of the "stones being taken" animation. */
+export const TAKE_MS = 1400;
+const LIGHT_END = 0.22; // stones light up in the mover's colour and lift
+const HOLD_END = 0.38; // ... stay there for a moment, so it is clear which stones go
+const STAGGER = 0.06; // then float away one after another (rightmost first)
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const easeOut = (v: number) => 1 - (1 - v) ** 3;
+const easeInOut = (v: number) => (v < 0.5 ? 4 * v ** 3 : 1 - (-2 * v + 2) ** 3 / 2);
+
+export interface TakeFrame {
+  lift: number; // 0..1: highlight colour + small lift (like a hover selection)
+  rise: number; // 0..1: how far it has floated up and away
+  alpha: number;
+  scale: number;
+}
+
+/**
+ * Where taken stone `k` (0 = leftmost) of `n` is at progress `t` (0..1) of the take animation.
+ * At t = 0 it looks like a resting stone; by t = 1 every stone is gone (alpha 0).
+ */
+export function takeFrame(t: number, k: number, n: number): TakeFrame {
+  const lift = easeOut(clamp01(t / LIGHT_END));
+  const spread = Math.min(0.25, STAGGER * (n - 1));
+  const order = n > 1 ? (n - 1 - k) / (n - 1) : 0; // rightmost stone leaves first
+  const start = HOLD_END + spread * order;
+  const u = easeInOut(clamp01((t - start) / (1 - HOLD_END - spread)));
+  return { lift, rise: u, alpha: t >= 1 ? 0 : 1 - u, scale: 1 - 0.3 * u };
+}

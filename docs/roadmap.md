@@ -54,7 +54,9 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
 ## Phase 6 — Canvas renderer
 - ✅ 6.1 Canvas board with click-to-move: tray-style piles, glossy stones, hover/tap/keyboard selection,
   light/dark aware, phone layout; `?board=dom` keeps the DOM board; Vitest tests for the geometry
-- ⬜ 6.2 Animations, turn highlight
+- ✅ 6.2 Animations, turn highlight: taken stones light up in the mover's seat colour,
+  hold, then float away with a "−N" (live + replay step forward); seat colour palette, pulsing
+  ring on your turn, "thinking…" banner for agents, current player row tinted; reduced-motion respected
 
 ## Phase 7 — Deployment (Azure)
 - ⬜ 7.1 Dockerfile, static frontend

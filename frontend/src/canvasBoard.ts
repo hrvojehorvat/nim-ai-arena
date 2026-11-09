@@ -7,6 +7,8 @@ import {
   layoutBoard,
   maxCount,
   selectionCount,
+  takeFrame,
+  TAKE_MS,
   type BoardLayout,
   type Selection,
 } from "./boardGeometry";
@@ -17,6 +19,10 @@ export interface BoardOptions {
   maxTake: number | null;
   canMove: boolean;
   onMove: (pile: number, count: number) => void;
+  /** The move that produced `piles`: its stones are drawn being taken, in the mover's colour. */
+  lastMove?: { pile: number; count: number; seat: number } | null;
+  /** Seat of the player choosing a move here: colours the hover/keyboard selection. */
+  seat?: number | null;
 }
 
 const LIFT_PX = 3;
@@ -36,6 +42,7 @@ interface Palette {
   accent: string;
   stone: string;
   stoneHi: string;
+  seats: string[]; // --seat-1, --seat-2, ...: one colour per player
   font: string;
 }
 
@@ -51,6 +58,7 @@ function readPalette(el: Element): Palette {
     accent: v("--accent"),
     stone: v("--stone"),
     stoneHi: v("--stone-hi"),
+    seats: [1, 2, 3, 4].map((n) => v(`--seat-${n}`)).filter(Boolean),
     font: css.fontFamily || "system-ui, sans-serif",
   };
 }
@@ -67,13 +75,17 @@ function drawStone(
   y: number,
   r: number,
   lift: number, // 0 = resting, 1 = selected
+  alpha = 1,
+  hi = p.stoneHi, // colour while selected / being taken
 ) {
   const cy = y - LIFT_PX * lift;
   const rr = r * (1 + 0.06 * lift);
+  ctx.save();
+  ctx.globalAlpha = alpha;
 
   // Soft contact shadow on the tray: wider and fainter as the stone lifts.
   ctx.save();
-  ctx.globalAlpha = 0.18 - 0.06 * lift;
+  ctx.globalAlpha = alpha * (0.18 - 0.06 * lift);
   ctx.fillStyle = "#000";
   ctx.beginPath();
   ctx.ellipse(x, y + r * 0.82, r * (0.8 + 0.15 * lift), r * 0.22, 0, 0, Math.PI * 2);
@@ -83,7 +95,7 @@ function drawStone(
   // Body: base colour, cross-faded to the highlight colour, with a glow while selected.
   ctx.save();
   if (lift > 0.01) {
-    ctx.shadowColor = p.stoneHi;
+    ctx.shadowColor = hi;
     ctx.shadowBlur = 12 * lift;
   }
   ctx.fillStyle = p.stone;
@@ -93,8 +105,8 @@ function drawStone(
   ctx.restore();
   if (lift > 0.01) {
     ctx.save();
-    ctx.globalAlpha = Math.min(1, lift);
-    ctx.fillStyle = p.stoneHi;
+    ctx.globalAlpha = alpha * Math.min(1, lift);
+    ctx.fillStyle = hi;
     ctx.beginPath();
     ctx.arc(x, cy, rr, 0, Math.PI * 2);
     ctx.fill();
@@ -117,9 +129,10 @@ function drawStone(
   ctx.beginPath();
   ctx.arc(x, cy, rr, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 }
 
-export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOptions): HTMLElement {
+export function renderCanvasBoard({ piles, maxTake, canMove, onMove, lastMove, seat }: BoardOptions): HTMLElement {
   const canvas = h("canvas", { class: "board-canvas" }) as HTMLCanvasElement;
   const live = h("span", { class: "sr-only", "aria-live": "polite" });
   const wrap = h("div", { class: `canvas-board${canMove ? " can-move" : ""}` }, canvas, live);
@@ -146,6 +159,16 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
   const lift = piles.map((size) => new Array<number>(size).fill(0));
   let frame = 0;
 
+  // Leaving stones: laid out on the board as it was before the move (only that pile differs).
+  const leaving = lastMove && lastMove.count > 0 && !reducedMotion() ? lastMove : null;
+  const before = leaving ? piles.map((s, i) => (i === leaving.pile ? s + leaving.count : s)) : null;
+  let ghostLayout: BoardLayout | null = before ? layoutBoard(before, layout.width) : null;
+  let leaveStart = 0; // set on the first real draw, so the animation starts when it is visible
+  const leaveProgress = () =>
+    leaving && leaveStart ? Math.min(1, (performance.now() - leaveStart) / TAKE_MS) : leaving ? 0 : 1;
+  const seatColor = (p: Palette, s: number | null | undefined) =>
+    s === null || s === undefined || p.seats.length === 0 ? p.stoneHi : p.seats[s % p.seats.length];
+
   const isSelected = (pile: number, i: number) =>
     sel !== null && sel.pile === pile && i >= piles[pile] - sel.count;
 
@@ -153,6 +176,10 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
     // Not on the page yet: CSS variables can't be read. The ResizeObserver draws once attached.
     if (!wrap.isConnected) return;
     if (!palette) palette = readPalette(wrap);
+    if (leaving && !leaveStart) {
+      leaveStart = performance.now();
+      requestAnimationFrame(animate);
+    }
     const p = palette;
     const dpr = window.devicePixelRatio || 1;
     const { width, height } = layout;
@@ -165,6 +192,9 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
     ctx.clearRect(0, 0, width, height);
     const m = layout.m;
     const small = m.d < 20; // phone metrics: tighter type to fit the narrower columns
+    const selColor = seatColor(p, seat);
+    const takeColor = seatColor(p, leaving?.seat);
+    const t = leaveProgress();
 
     for (const row of layout.rows) {
       const { tray } = row;
@@ -174,15 +204,18 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
       roundRect(ctx, tray.x + 0.5, tray.y + 0.5, tray.w - 1, tray.h - 1, 12);
       ctx.fillStyle = p.bg;
       ctx.fill();
-      if (active) {
+      // The pile being taken from glows in the mover's colour until the stones are gone.
+      const taking = leaving?.pile === row.pile && t < 1;
+      const flash = taking ? 0.12 * Math.sin(Math.PI * Math.min(1, t * 1.15)) : 0;
+      if (active || flash > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.08;
-        ctx.fillStyle = p.stoneHi;
+        ctx.globalAlpha = active ? 0.08 : flash;
+        ctx.fillStyle = active ? selColor : takeColor;
         ctx.fill();
         ctx.restore();
       }
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = active ? p.stoneHi : p.border;
+      ctx.lineWidth = taking ? 1.5 : 1;
+      ctx.strokeStyle = active ? selColor : taking ? takeColor : p.border;
       ctx.stroke();
 
       // Label column: "PILE 1" over the stone count.
@@ -204,7 +237,25 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
         ctx.font = `italic 13px ${p.font}`;
         ctx.fillText("empty", m.padX + m.labelW, midY);
       }
-      row.stones.forEach((s, i) => drawStone(ctx, p, s.x, s.y, s.r, lift[row.pile][i]));
+      row.stones.forEach((s, i) => drawStone(ctx, p, s.x, s.y, s.r, lift[row.pile][i], 1, selColor));
+
+      // Stones taken by the last move: light up in the mover's colour, hold, then float away.
+      if (taking && leaving && ghostLayout) {
+        const ghosts = ghostLayout.rows[row.pile].stones.slice(row.size);
+        ghosts.forEach((s, k) => {
+          const f = takeFrame(t, k, ghosts.length);
+          drawStone(ctx, p, s.x, s.y - 34 * f.rise, s.r * f.scale, f.lift, f.alpha, takeColor);
+        });
+        // "−N" in the mover's colour, rising on the right of the pile.
+        const label = `−${leaving.count}`;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, t / 0.12, (1 - t) / 0.2);
+        ctx.fillStyle = takeColor;
+        ctx.font = `800 ${small ? 15 : 18}px ${p.font}`;
+        ctx.textAlign = "right";
+        ctx.fillText(label, tray.w - m.padX, midY - 10 * t);
+        ctx.restore();
+      }
 
       // "take N" pill on the right of the selected pile.
       if (active && sel) {
@@ -214,7 +265,7 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
         const ph = small ? 20 : 24;
         const px = tray.w - m.padX - pw;
         roundRect(ctx, px, midY - ph / 2, pw, ph, ph / 2);
-        ctx.fillStyle = p.stoneHi;
+        ctx.fillStyle = selColor;
         ctx.fill();
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
@@ -238,7 +289,7 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
         }),
       );
       draw();
-      if (moving) frame = requestAnimationFrame(tick);
+      if (moving || leaveProgress() < 1) frame = requestAnimationFrame(tick);
     };
     tick();
   }
@@ -261,7 +312,10 @@ export function renderCanvasBoard({ piles, maxTake, canMove, onMove }: BoardOpti
 
   function relayout() {
     const width = Math.floor(wrap.clientWidth);
-    if (width > 0 && width !== layout.width) layout = layoutBoard(piles, width);
+    if (width > 0 && width !== layout.width) {
+      layout = layoutBoard(piles, width);
+      if (before) ghostLayout = layoutBoard(before, width);
+    }
     draw();
   }
 

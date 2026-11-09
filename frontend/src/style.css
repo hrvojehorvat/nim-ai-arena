@@ -8,6 +8,11 @@
   --accent-soft: #e6eefc;
   --stone: #4a4f57;
   --stone-hi: #e2552d;
+  /* One colour per seat (taking animation, selection, name dots). Seats 3-4 for later N-player games. */
+  --seat-1: #e2552d;
+  --seat-2: #0f9e8e;
+  --seat-3: #8b5cf6;
+  --seat-4: #d49a00;
   --danger: #c0392b;
   --ok: #2e8b57;
   color-scheme: light dark;
@@ -26,6 +31,10 @@
     --accent-soft: #24304a;
     --stone: #b9bec7;
     --stone-hi: #ff7a52;
+    --seat-1: #ff7a52;
+    --seat-2: #2fd3bf;
+    --seat-3: #a78bfa;
+    --seat-4: #f5c542;
   }
 }
 
@@ -126,3 +135,25 @@ table.history th { color: var(--muted); font-weight: 500; }
 .log.clickable li.current { font-weight: 600; color: var(--accent); }
 
 .why { color: var(--muted); font-size: 0.85rem; font-weight: 400; margin: 2px 0 6px; }
+
+/* 6.2 turn highlight: a soft pulsing ring around the board on your turn, a "thinking" ellipsis
+   while an agent plays, and the current player's row tinted. Motion is dropped on request. */
+.canvas-board.can-move .board-canvas { animation: turn-ring 2.2s ease-in-out infinite; }
+@keyframes turn-ring {
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent-soft); }
+  50% { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 18px 2px var(--accent-soft); }
+}
+.banner { transition: background 200ms, color 200ms; }
+/* Banner and current player row in the seat colour of whoever is acting (--seat, set inline). */
+.banner.seat-tint { background: color-mix(in srgb, var(--seat) 14%, var(--card)); color: var(--seat); box-shadow: inset 3px 0 0 var(--seat); }
+.banner.finished { background: var(--accent-soft); color: var(--accent); }
+.banner.thinking .banner-text::after { content: "…"; display: inline-block; width: 1.2em; text-align: left; animation: thinking 1.2s steps(4) infinite; overflow: hidden; vertical-align: bottom; }
+@keyframes thinking { 0% { width: 0; } 100% { width: 1.2em; } }
+.players li { padding: 4px 8px; margin: 0 -8px; border-radius: 6px; transition: background 200ms; }
+.players li.current { background: color-mix(in srgb, var(--seat) 14%, transparent); color: var(--seat); }
+@media (prefers-reduced-motion: reduce) {
+  .canvas-board.can-move .board-canvas { animation: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .banner.thinking .banner-text::after { animation: none; width: auto; }
+}
+
+.seat-dot { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; margin-right: 0.45em; vertical-align: 0.05em; }

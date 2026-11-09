@@ -430,3 +430,26 @@ docs/      architecture decisions + roadmap
 - Setup form: the win rule is an explicit dropdown (default "last stone wins", standard Nim) instead of a
   checkbox, and `GET /defaults` reports the server's `agent_move_delay` so the form can show
   "empty = server default: 1.5".
+
+## 6.2 Move animation and turn highlight
+- `renderBoard` takes an optional `lastMove {pile, count}`: the canvas board lays out the board as it was
+  before that move (only that pile differs) and plays a 1.4 s "take": the stones light up and lift in the
+  mover's colour, hold, then float away one by one (rightmost first) with a rising "−N"; the tray glows in
+  the same colour. The timing curve is the pure `takeFrame(t, k, n)` in `boardGeometry.ts` (unit-tested).
+  With the default 1.5 s agent move delay it finishes before the next move; a shorter delay cuts it off.
+- Seat colours: `--seat-1..4` CSS variables (light + dark), indexed by seat, used for the take animation,
+  the hover/keyboard selection of the player choosing, and a dot next to names in the players list, move
+  log and replay. Four are defined so N-player games (bonus B2) only need more seats, not new code.
+- Turn hand-over waits for the animation: for `takeAnimationMs()` after a new move (0 under reduced motion
+  or the DOM board) the banner says "agent1 takes 3 from Pile 2" and the players list highlights agent1,
+  both in agent1's colour; a single timer then re-renders once (without animation) to show "agent2 is
+  thinking…" / "Your turn" / the winner in the next seat's colour. Purely client-side: the server's agent
+  delay is unchanged, the UI only holds back the *display* of the next turn. The board stays playable for a
+  human during that time. Explicit instead of diffing piles, because the
+  view is rebuilt from scratch on every server message and the caller knows what changed.
+- Match view: animates only when exactly one new move arrived since the last render, so reconnects,
+  error toasts and the first paint don't replay it. Replay: only when stepping forward by one.
+- Turn highlight is CSS: a pulsing accent ring around the board when you can move, an accent bar on
+  "Your turn", an animated "… is thinking" banner while an agent seat is to move, the current player's
+  row tinted, and a tinted banner when the game ends. Everything is static under `prefers-reduced-motion`
+  (the leaving-stones animation is skipped entirely). The DOM fallback board ignores `lastMove`.

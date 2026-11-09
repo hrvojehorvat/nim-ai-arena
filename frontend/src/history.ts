@@ -1,5 +1,5 @@
 import { getReplay, listMatches } from "./api";
-import { describeRules, renderBoard } from "./board";
+import { describeRules, renderBoard, seatDot } from "./board";
 import { h } from "./dom";
 import { metaLine } from "./meta";
 import type { MatchSummary, Replay } from "./types";
@@ -65,15 +65,19 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
   let disposed = false;
   let replay: Replay | null = null;
   let step = 0; // number of moves applied; 0 = initial position
+  let animate = false; // the last go() was one step forward: animate that move's stones leaving
   let error: string | null = null;
   const view = h("div");
   root.replaceChildren(view);
 
   const name = (id: string) => replay?.players.find((p) => p.id === id)?.name ?? id;
+  const seatOf = (id: string) => replay?.players.findIndex((p) => p.id === id) ?? -1;
 
   const go = (to: number) => {
     if (!replay) return;
-    step = Math.min(replay.moves.length, Math.max(0, to));
+    const next = Math.min(replay.moves.length, Math.max(0, to));
+    animate = next === step + 1;
+    step = next;
     render();
   };
 
@@ -115,10 +119,16 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
         h(
           "div",
           { class: "banner" },
-          h("span", {}, mv ? `Move ${step}: ${name(mv.player_id)} took ${mv.count} from Pile ${mv.pile + 1}${mv.auto ? " (auto)" : ""}` : "Initial position"),
+          h("span", {}, mv ? seatDot(seatOf(mv.player_id)) : null, mv ? `Move ${step}: ${name(mv.player_id)} took ${mv.count} from Pile ${mv.pile + 1}${mv.auto ? " (auto)" : ""}` : "Initial position"),
           h("span", {}, result),
         ),
-        renderBoard({ piles, maxTake: r.max_take, canMove: false, onMove: () => {} }),
+        renderBoard({
+          piles,
+          maxTake: r.max_take,
+          canMove: false,
+          onMove: () => {},
+          lastMove: animate && mv ? { pile: mv.pile, count: mv.count, seat: seatOf(mv.player_id) } : null,
+        }),
         mv?.reasoning ? h("p", { class: "why" }, `💭 ${mv.reasoning}`) : null,
         metaLine(mv?.meta),
         h(
@@ -147,6 +157,7 @@ export function renderReplay(root: HTMLElement, matchId: string): () => void {
                   const li = h(
                     "li",
                     { class: i + 1 === step ? "current" : "" },
+                    seatDot(seatOf(m.player_id)),
                     `${name(m.player_id)} took ${m.count} from Pile ${m.pile + 1} → [${m.piles_after.join(", ")}]${m.auto ? " (auto)" : ""}`,
                     m.reasoning ? h("div", { class: "why" }, m.reasoning) : null,
                     metaLine(m.meta),
