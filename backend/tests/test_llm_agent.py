@@ -155,7 +155,7 @@ def test_description_names_the_model_and_mode() -> None:
 
 
 def test_unconfigured_llms_are_hidden(monkeypatch) -> None:
-    for var in ("ANTHROPIC_API_KEY", "MODAL_LLM_URL", "MODAL_LLM_API_KEY"):
+    for var in ("ANTHROPIC_API_KEY", "MODAL_LLM_URL", "MODAL_LLM_API_KEY", "GROQ_API_KEY"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:9/v1")  # nothing listens there
     assert set(build_agents(llms=True)) == {"nim_optimal", "random"}

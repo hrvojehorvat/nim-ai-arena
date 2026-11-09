@@ -406,3 +406,24 @@ docs/      architecture decisions + roadmap
 - Not stored: the raw prompts/replies and tool arguments (size, and may contain nothing beyond the board);
   arena runs still aren't persisted, only matches.
 
+
+## 6.1 Canvas board
+- `renderBoard(...)` keeps its signature, so `match.ts` / `history.ts` are unchanged. It now draws on a canvas
+  (`canvasBoard.ts`); `?board=dom` in the URL switches back to the original DOM board (`renderDomBoard`),
+  kept as a fallback and for comparison.
+- Split: `boardGeometry.ts` is pure maths (layout, hit-test, keyboard selection) with Vitest unit tests
+  (`npm test`); `canvasBoard.ts` only draws and wires input. Two size presets (wide, phone) plus a
+  5-per-line fallback, chosen from the container width via a `ResizeObserver`; DPR-scaled for sharp output.
+- Colours come from the existing CSS variables (read with `getComputedStyle`), so light/dark themes match the
+  rest of the UI; a `prefers-color-scheme` listener redraws on a theme switch.
+- Input: mouse hover previews and click plays (same "from this stone to the end, capped at max_take" rule);
+  touch selects on the first tap and plays on a second tap of the same selection (no hover on phones).
+  Keyboard: the canvas is focusable on your turn; arrows/number keys select, Enter plays, and an `aria-live`
+  region announces the selection. Focus is restored after a keyboard move, because the match view rebuilds
+  the board on every server update.
+- Selected stones lift and glow with a short eased animation (skipped under `prefers-reduced-motion`).
+- Tradeoff: a canvas is opaque to the accessibility tree and browser zoom/find, so accessibility is handled by
+  hand (role, label, live region); the DOM board stays as the fallback.
+- Also in 6.1: the server entry point (`app.main`) now loads `backend/.env` like the arena CLI (shell vars
+  win), so Groq/Modal agents and `DATABASE_URL` work with plain `uv run uvicorn app.main:app`. The setup form
+  defaults to `agent1` = `nim_optimal` vs `agent2` = a local Ollama model (free; `random` if Ollama is down).

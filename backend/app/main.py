@@ -2,8 +2,10 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import asyncpg
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 
 from app import ws
@@ -79,4 +81,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     return app
 
 
+# Server entry point (`uvicorn app.main:app`): read backend/.env (LLM keys/URLs, DATABASE_URL)
+# the same way the arena CLI does. Variables already set in the shell win over the file.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
 app = create_app()

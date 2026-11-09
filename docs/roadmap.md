@@ -52,7 +52,8 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
 - ✅ 5.9 Richer traces: `moves.meta` JSON (model, tokens, latency, retries, tool calls) shown in replay
 
 ## Phase 6 — Canvas renderer
-- ⬜ 6.1 Canvas board with click-to-move
+- ✅ 6.1 Canvas board with click-to-move: tray-style piles, glossy stones, hover/tap/keyboard selection,
+  light/dark aware, phone layout; `?board=dom` keeps the DOM board; Vitest tests for the geometry
 - ⬜ 6.2 Animations, turn highlight
 
 ## Phase 7 — Deployment (Azure)

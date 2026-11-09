@@ -87,16 +87,32 @@ export function renderSetup(root: HTMLElement): () => void {
       ),
     );
   };
-  addPlayer("you");
-  addPlayer("bot", "nim_optimal");
+  // Default match: the deterministic agent vs a local (free) Ollama model, resolved once the list
+  // arrives; falls back to the random agent when Ollama isn't running.
+  const LOCAL_LLM = "@local-llm";
+  const pickLocal = (list: AgentInfo[]) => {
+    const names = list.map((a) => a.name);
+    const ollama = names.filter((n) => n.startsWith("ollama_"));
+    return ollama.find((n) => n === "ollama_qwen2_1_5b") ?? ollama.find((n) => !n.endsWith("_precompute")) ??
+      ollama[0] ?? "random";
+  };
+  addPlayer("agent1", "nim_optimal");
+  addPlayer("agent2", LOCAL_LLM);
   let disposed = false;
   listAgents()
     .then((list) => {
       if (disposed) return;
       agents = list;
-      playerInputs.forEach(({ kind }) => fillOptions(kind));
+      playerInputs.forEach(({ kind }) => {
+        if (kind.dataset.want === LOCAL_LLM) kind.dataset.want = pickLocal(list);
+        fillOptions(kind);
+      });
     })
     .catch(() => {
+      playerInputs.forEach(({ kind }) => {
+        kind.dataset.want = "human";
+        fillOptions(kind);
+      });
       errorBox.textContent = "Couldn't load the agent list; only human seats are available.";
     });
 

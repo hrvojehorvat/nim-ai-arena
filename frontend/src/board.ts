@@ -1,6 +1,8 @@
+import { GROUP_SIZE, selectionCount } from "./boardGeometry";
+import { renderCanvasBoard, type BoardOptions } from "./canvasBoard";
 import { h } from "./dom";
 
-export const GROUP_SIZE = 5;
+export { GROUP_SIZE, selectionCount };
 
 /** One-line description of the rules, e.g. "last stone loses · max 3 per move". */
 export function describeRules(maxTake: number | null, lastStoneLoses: boolean): string {
@@ -10,24 +12,17 @@ export function describeRules(maxTake: number | null, lastStoneLoses: boolean): 
   ].join(" · ");
 }
 
-/** How many stones a hover/click on stone `index` selects (stones are taken from the right end). */
-export function selectionCount(pileSize: number, index: number, maxTake: number | null): number {
-  const wanted = pileSize - index;
-  return maxTake === null ? wanted : Math.min(wanted, maxTake);
-}
-
-interface BoardOptions {
-  piles: number[];
-  maxTake: number | null;
-  canMove: boolean;
-  onMove: (pile: number, count: number) => void;
+/** The canvas board by default; `?board=dom` in the URL switches to the original DOM board. */
+export function renderBoard(options: BoardOptions): HTMLElement {
+  const useDom = new URLSearchParams(location.search).get("board") === "dom";
+  return useDom ? renderDomBoard(options) : renderCanvasBoard(options);
 }
 
 /**
  * Renders piles as rows of stones in groups of GROUP_SIZE. Hovering a stone highlights the
  * stones that would be taken (from that stone to the end, capped at maxTake); clicking moves.
  */
-export function renderBoard({ piles, maxTake, canMove, onMove }: BoardOptions): HTMLElement {
+export function renderDomBoard({ piles, maxTake, canMove, onMove }: BoardOptions): HTMLElement {
   const board = h("div", { class: `board${canMove ? " can-move" : ""}` });
 
   piles.forEach((size, pileIndex) => {
