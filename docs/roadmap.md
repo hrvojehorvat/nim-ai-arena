@@ -61,9 +61,11 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
 ## Phase 7 — Deployment (Azure, free tiers only)
 - ✅ 7.1 One Docker image (root `Dockerfile`): node stage builds the frontend, python stage runs uvicorn
   and serves the built files from the same origin (`FRONTEND_DIST`); `.dockerignore` keeps `.env` out
-- ⬜ 7.2 Deploy: image on GitHub ghcr.io (free), Azure Container Apps (consumption, min 0 / max 1 replica,
-  in-memory matches), free external Postgres (Neon/Supabase) via `DATABASE_URL`, cloud LLMs = all
-  configured except Modal (Groq; Ollama is local-only); `docs/deploy.md` with exact commands
+- 🟡 7.2 Deploy: `deploy/azure.sh` (build, push to private ghcr.io, create/update Azure Container App:
+  consumption, min 0 / max 1 replica, no Log Analytics), `docs/deploy.md`; private repo
+  github.com/hrvojehorvat/nim-ai-arena. Cloud LLMs = Groq only (no Modal; Ollama is local).
+  Waiting for: `CLOUD_DATABASE_URL` (free Neon/Supabase) + `GHCR_PULL_TOKEN` (read:packages) in
+  `backend/.env`, then the first `./deploy/azure.sh`
 
 ## Bonus phases (after deployment, in this order)
 - ⬜ B1 **Accounts + user agents.** Free, simple, secure sign-in (e.g. GitHub OAuth, no passwords stored),

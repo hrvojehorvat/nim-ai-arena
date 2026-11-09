@@ -469,3 +469,22 @@ docs/      architecture decisions + roadmap
   Ollama is unreachable in the cloud and hides itself).
 - Exactly one replica: matches and their timers live in process memory, so a second container would not
   see them. Scaling out needs shared state first (not planned).
+
+## Phase 7.2 — Azure deployment (free tiers)
+- Azure Container Apps (consumption plan) over App Service / AKS: it runs a plain container, supports
+  WebSockets on its HTTPS ingress, scales to zero, and the monthly free grant covers a hobby app. Pinned to
+  min 0 / max 1 replica because matches live in memory; scale-to-zero only drops matches when nobody is
+  connected. No Log Analytics workspace (`--logs-destination none`): it bills per GB; console logs still
+  stream with `az containerapp logs show`.
+- Image on ghcr.io (free) instead of Azure Container Registry (~$5/month). The package is private (linked
+  to the private repo via the `org.opencontainers.image.source` label); Azure pulls with a
+  `read:packages`-only token stored as a Container App registry secret, never the broad gh CLI token.
+- Postgres: a free external provider (Neon/Supabase) instead of Azure Database for PostgreSQL (~$15/month
+  after the free year); it is only a `DATABASE_URL`, so moving to Azure Postgres later is a config change.
+  Migrations run on startup as locally. Without it the deployment runs with History disabled.
+- `deploy/azure.sh` is idempotent: creates the resource group, environment and app on the first run, later
+  only rolls out a new image. The image tag is the git commit (the script refuses a dirty tree), so what
+  runs is always traceable. Secrets are read from `backend/.env` via python-dotenv (no shell `source`, so
+  `&` in URLs is safe), passed as Container App secrets and referenced with `secretref:`; never printed.
+- Which agents the cloud offers is decided by which secrets are passed: only `GROQ_API_KEY` (Modal is paid
+  credits, not exposed to an unauthenticated public URL; Ollama can't be reached from Azure).

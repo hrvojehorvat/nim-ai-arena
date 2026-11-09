@@ -13,6 +13,8 @@ RUN npm run build
 
 # --- 2. backend runtime ---
 FROM python:3.14-slim
+# Links the ghcr.io package to the (private) GitHub repo, so it shares the repo's access rules.
+LABEL org.opencontainers.image.source="https://github.com/hrvojehorvat/nim-ai-arena"
 COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /usr/local/bin/uv
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 \
