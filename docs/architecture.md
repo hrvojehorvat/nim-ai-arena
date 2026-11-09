@@ -453,3 +453,19 @@ docs/      architecture decisions + roadmap
   "Your turn", an animated "… is thinking" banner while an agent seat is to move, the current player's
   row tinted, and a tinted banner when the game ends. Everything is static under `prefers-reduced-motion`
   (the leaving-stones animation is skipped entirely). The DOM fallback board ignores `lastMove`.
+
+## Phase 7.1 — Docker image
+- One image for everything (root `Dockerfile`, build context = repo root): stage 1 (`node:22-slim`) runs
+  `npm ci && npm run build`; stage 2 (`python:3.14-slim` + uv) installs the locked runtime deps
+  (`uv sync --frozen --no-dev`), copies `app/`, `migrations/`, `llm_agents.toml` and the built frontend to
+  `/app/static`, runs as a non-root user, `uvicorn --proxy-headers` on :8000.
+- Same origin, no CORS: `create_app()` mounts `StaticFiles(html=True)` at `/` only when `FRONTEND_DIST` is
+  set (the image sets it). It is mounted after all routers, so `/matches`, `/agents`, `/health`, `/ws/...`
+  win; hash routing means `/` -> `index.html` is the only page needed. The frontend already derives the
+  WebSocket URL from `location` (wss on https). In development the variable is unset and Vite serves.
+- Secrets never enter the image: `.dockerignore` drops `.env*` (plus tests, notebooks, docs, node_modules,
+  venvs); keys arrive as environment variables at run time (`--env-file` locally, secrets in the cloud).
+  Which LLM agents a deployment offers follows from which variables it gets (unset Modal vars = no Modal;
+  Ollama is unreachable in the cloud and hides itself).
+- Exactly one replica: matches and their timers live in process memory, so a second container would not
+  see them. Scaling out needs shared state first (not planned).

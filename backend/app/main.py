@@ -7,6 +7,7 @@ from pathlib import Path
 import asyncpg
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 
 from app import ws
 from app.agents.registry import build_agents
@@ -77,6 +78,13 @@ def create_app(database_url: str | None = None) -> FastAPI:
         except Exception:
             return {"status": "degraded", "db": "down"}
         return {"status": "ok", "db": "ok"}
+
+    # Deployed (Docker image): serve the built frontend from the same origin. Mounted last, so
+    # every API/WebSocket route above wins; the SPA uses hash routes, so "/" -> index.html is all.
+    # Unset in development: Vite serves the frontend and proxies to us.
+    frontend_dist = os.environ.get("FRONTEND_DIST")
+    if frontend_dist:
+        app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
     return app
 

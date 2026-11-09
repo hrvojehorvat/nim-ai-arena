@@ -1,0 +1,16 @@
+# Keep secrets and local junk out of the image build context.
+**/.env
+**/.env.*
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+frontend/dist
+backend/notebooks
+backend/tests
+backend/deploy
+.git
+.claude
+docs
+*.md

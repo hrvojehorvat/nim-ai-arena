@@ -58,15 +58,27 @@ seat can select (Claude vs GPT-OSS vs `nim_optimal`, ...). Keys/URLs live in `ba
   hold, then float away with a "−N" (live + replay step forward); seat colour palette, pulsing
   ring on your turn, "thinking…" banner for agents, current player row tinted; reduced-motion respected
 
-## Phase 7 — Deployment (Azure)
-- ⬜ 7.1 Dockerfile, static frontend
-- ⬜ 7.2 Azure Postgres config + deploy README
+## Phase 7 — Deployment (Azure, free tiers only)
+- ✅ 7.1 One Docker image (root `Dockerfile`): node stage builds the frontend, python stage runs uvicorn
+  and serves the built files from the same origin (`FRONTEND_DIST`); `.dockerignore` keeps `.env` out
+- ⬜ 7.2 Deploy: image on GitHub ghcr.io (free), Azure Container Apps (consumption, min 0 / max 1 replica,
+  in-memory matches), free external Postgres (Neon/Supabase) via `DATABASE_URL`, cloud LLMs = all
+  configured except Modal (Groq; Ollama is local-only); `docs/deploy.md` with exact commands
 
-## Bonus phases (after deployment, pick as wanted)
-- ⬜ B1 **Upgrade Ollama and remove the precompute WORKAROUND.** Ollama is 0.1.48 (no tool calling, no
-  JSON-schema output). Upgrade to a current release, switch the `*_precompute` entries in `llm_agents.toml` to
-  `tools = "native"`, set Ollama `STRUCTURED_OUTPUT = True` (verify per model), delete the `precompute` node in
-  `llm_tool_agent.py` and re-run the arena comparisons
-- ⬜ B2 N-player Nim (parked 4.1): 3+ seats, forfeit on timeout
-- ⬜ B3 Per-seat tokens / auth so a client can only move for its own seat
-- ⬜ B4 Persist arena runs (win rates, LLM stats) in the DB
+## Bonus phases (after deployment, in this order)
+- ⬜ B1 **Accounts + user agents.** Free, simple, secure sign-in (e.g. GitHub OAuth, no passwords stored),
+  per-seat tokens so a client can only move for its own seat; then users add their own agents: upload one,
+  or write one in an in-app editor (sandboxed: the server must never run untrusted code unguarded)
+- ⬜ B2 **Full-screen, responsive, native-feeling UI.** Full-viewport layout on desktop and phone, windows /
+  panels that behave like native ones
+- ⬜ B3 **MCP.** Expose the arena over MCP (e.g. tools to list agents, start a match, read state, play a
+  move) so an MCP client like Claude can play or drive the arena
+- ⬜ B4 Upgrade Ollama and remove the precompute WORKAROUND: Ollama is 0.1.48 (no tool calling, no
+  JSON-schema output). Upgrade, switch `*_precompute` entries in `llm_agents.toml` to `tools = "native"`,
+  set Ollama `STRUCTURED_OUTPUT = True` (verify per model), delete the `precompute` node in
+  `llm_tool_agent.py`, re-run the arena comparisons
+- ⬜ B5 N-player Nim (parked 4.1): 3+ seats, forfeit on timeout
+- ⬜ B6 Persist arena runs (win rates, LLM stats) in the DB
+- ⬜ B7 **Tournaments and leagues.** Tournament: knockout bracket (playoffs / tennis style), winners advance.
+  League: round robin, every agent plays every other agent N times (2/4/6/8, set when creating it; sides
+  alternate who starts), standings table. Each pairing can be a single match or best of 3/5/7 for both
