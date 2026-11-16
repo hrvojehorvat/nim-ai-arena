@@ -18,3 +18,6 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Local AI assistant instructions (not published)
+CLAUDE.md
